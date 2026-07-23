@@ -13,7 +13,7 @@ const CATS = [
 const DOW = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 export default function Versus() {
-  const { playerName, uid, records, waterGoalMl, today, firebaseReady } = useTrackerCtx();
+  const { playerName, uid, records, waterGoalMl, habitsList, splitOverrides, today, firebaseReady } = useTrackerCtx();
   const { players, state } = useLeaderboard();
   const [expanded, setExpanded] = useState(null);
   const navigate = useNavigate();
@@ -21,7 +21,13 @@ export default function Versus() {
   const wkStart = mondayOf(fromIso(today));
   const wkDates = Array.from({ length: 7 }, (_, i) => iso(addDays(wkStart, i)));
 
-  const statusOf = (p, ds) => statusFor(p.records && p.records[ds], p.waterGoalMl || WATER_GOAL_ML_DEFAULT);
+  // Every player is scored against their OWN customized habits/split/goal.
+  const statusOf = (p, ds) =>
+    statusFor(p.records && p.records[ds], {
+      waterGoalMl: p.waterGoalMl || WATER_GOAL_ML_DEFAULT,
+      habitsList: p.habitsList || undefined,
+      splitOverrides: p.splitOverrides || undefined,
+    });
 
   const scoreOf = (p) =>
     wkDates.reduce((sum, ds) => {
@@ -79,7 +85,7 @@ export default function Versus() {
       ) : (
         <div className="card">
           {(() => {
-            const me = { id: uid, name: playerName, records, waterGoalMl, isMe: true };
+            const me = { id: uid, name: playerName, records, waterGoalMl, habitsList, splitOverrides, isMe: true };
             const myScore = scoreOf(me);
             const others = players.filter((p) => p.id !== uid);
             const board = [me, ...others].map((p) => ({ ...p, score: scoreOf(p) })).sort((a, b) => b.score - a.score);

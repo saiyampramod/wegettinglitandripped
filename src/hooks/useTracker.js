@@ -12,6 +12,8 @@ const emptyDoc = () => ({
   milestones: [],
   waterGoalMl: WATER_GOAL_ML_DEFAULT,
   reminders: REMINDER_DEFAULTS,
+  habitsList: null, // null → use the default HABITS list
+  splitOverrides: {}, // {dayNum: {exercises: [...]}} — per-day workout customization
 });
 
 function readCache(key) {
@@ -136,6 +138,25 @@ export function useTracker(user) {
     setData((prev) => ({ ...prev, milestones: prev.milestones.filter((m) => m.id !== id) }));
   }, []);
 
+  const setHabitsList = useCallback((list) => {
+    setData((prev) => ({ ...prev, habitsList: list }));
+  }, []);
+
+  const setSplitDayExercises = useCallback((dayNum, exercises) => {
+    setData((prev) => ({
+      ...prev,
+      splitOverrides: { ...(prev.splitOverrides || {}), [dayNum]: { exercises } },
+    }));
+  }, []);
+
+  const resetSplitDay = useCallback((dayNum) => {
+    setData((prev) => {
+      const next = { ...(prev.splitOverrides || {}) };
+      delete next[dayNum];
+      return { ...prev, splitOverrides: next };
+    });
+  }, []);
+
   const updateReminders = useCallback((category, patch) => {
     setData((prev) => ({
       ...prev,
@@ -168,6 +189,11 @@ export function useTracker(user) {
     removeMilestone,
     reminders: { ...REMINDER_DEFAULTS, ...data.reminders },
     updateReminders,
+    habitsList: data.habitsList || null,
+    setHabitsList,
+    splitOverrides: data.splitOverrides || {},
+    setSplitDayExercises,
+    resetSplitDay,
     today: iso(new Date()),
   };
 }

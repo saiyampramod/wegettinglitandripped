@@ -202,17 +202,26 @@ export const emptyRecord = (dateStr) => ({
 export const slug = (s) =>
   s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 30);
 
-/* status of a single day's record against the definitions above */
-export const statusFor = (r, waterGoalMl) => {
+/* a split day with any per-player exercise overrides applied */
+export const splitFor = (n, splitOverrides) => {
+  const base = SPLIT[n];
+  const override = splitOverrides && splitOverrides[n];
+  return override && Array.isArray(override.exercises) ? { ...base, exercises: override.exercises } : base;
+};
+
+/* status of a single day's record against that player's own definitions —
+   each player is judged against their customized habits/split, not the defaults */
+export const statusFor = (r, profile = {}) => {
   if (!r) return { morning: false, gym: false, habits: false, water: false };
+  const habitsList = profile.habitsList || HABITS;
   const morningDone = ALL_MORNING_IDS.every((id) => r.morning && r.morning[id]);
-  const day = SPLIT[r.splitDay || 4];
+  const day = splitFor(r.splitDay || 4, profile.splitOverrides);
   const isRest = day.exercises.length === 0;
   const gymDone = isRest
     ? !!r.gymManualDone
     : day.exercises.length > 0 && day.exercises.every((e) => r.gym && r.gym[e.id]);
-  const habitsDone = HABITS.every((h) => r.habits && r.habits[h.id]);
+  const habitsDone = habitsList.length > 0 && habitsList.every((h) => r.habits && r.habits[h.id]);
   const waterMl = (r.water && r.water.ml) || 0;
-  const waterDone = waterMl >= (waterGoalMl || WATER_GOAL_ML_DEFAULT);
+  const waterDone = waterMl >= (profile.waterGoalMl || WATER_GOAL_ML_DEFAULT);
   return { morning: morningDone, gym: gymDone, habits: habitsDone, water: waterDone, isRest };
 };

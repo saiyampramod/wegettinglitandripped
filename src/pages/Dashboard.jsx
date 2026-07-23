@@ -6,13 +6,16 @@ import { addDays, fromIso, iso, mondayOf, statusFor, WATER_GOAL_ML_DEFAULT } fro
 const DOW = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
 
 export default function Dashboard() {
-  const { records, recordFor, selected, setSelected, today, waterGoalMl, customTrackers, milestones, unreadCount } =
-    useTrackerCtx();
+  const {
+    records, recordFor, selected, setSelected, today, waterGoalMl,
+    habitsList, splitOverrides, customTrackers, milestones, unreadCount,
+  } = useTrackerCtx();
 
+  const profile = { waterGoalMl, habitsList, splitOverrides };
   const weekStart = mondayOf(fromIso(selected));
   const week = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const rec = recordFor(selected);
-  const st = statusFor(rec, waterGoalMl);
+  const st = statusFor(rec, profile);
   const waterMl = (rec.water && rec.water.ml) || 0;
   const goal = waterGoalMl || WATER_GOAL_ML_DEFAULT;
 
@@ -28,7 +31,7 @@ export default function Dashboard() {
       <div className="week-grid">
         {week.map((d) => {
           const ds = iso(d);
-          const dayStatus = statusFor(records[ds], waterGoalMl);
+          const dayStatus = statusFor(records[ds], profile);
           const isSel = ds === selected;
           const isToday = ds === today;
           const future = ds > today;

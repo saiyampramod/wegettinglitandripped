@@ -62,12 +62,17 @@ export default function Morning() {
                 phase.items.map((item) => {
                   const checked = !!rec.morning[item.id];
                   return (
-                    <button key={item.id} onClick={() => toggle(item.id)} className="row-btn">
-                      <span className={"checkbox" + (checked ? " checked" : "")}>{checked ? "✓" : ""}</span>
+                    <button
+                      key={item.id}
+                      onClick={() => toggle(item.id)}
+                      className={"task-row" + (checked ? " done" : "")}
+                      aria-pressed={checked}
+                    >
                       <span style={{ flex: 1 }}>
-                        <span className={"item-name" + (checked ? " checked" : "")}>{item.name}</span>
+                        <span className="item-name">{item.name}</span>
                         <span className="item-detail">{item.detail}</span>
                       </span>
+                      {checked ? <span className="done-chip">Done</span> : <span className="todo-dot" />}
                     </button>
                   );
                 })}

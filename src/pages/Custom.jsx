@@ -254,28 +254,25 @@ export default function Custom() {
       )}
       {sortedMilestones.map((m) => (
         <div key={m.id} className="card">
-          <div className="row-btn" style={{ alignItems: "flex-start" }}>
-            <button
-              className={"checkbox" + (m.done ? " checked" : "")}
-              style={{ marginTop: 2 }}
-              onClick={() => updateMilestone(m.id, { done: !m.done })}
-              aria-label={m.done ? "Mark not done" : "Mark done"}
-            >
-              {m.done ? "✓" : ""}
-            </button>
+          <div style={{ display: "flex", alignItems: "center" }}>
             <button
               onClick={() => updateMilestone(m.id, { done: !m.done })}
-              style={{ flex: 1, background: "none", border: "none", padding: 0, textAlign: "left" }}
+              className={"task-row" + (m.done ? " done" : "")}
+              style={{ borderBottom: "none", flex: 1 }}
+              aria-pressed={m.done}
             >
-              <span className={"item-name" + (m.done ? " checked" : "")} style={{ fontSize: 15, fontWeight: 600 }}>
-                {m.name}
+              <span style={{ flex: 1 }}>
+                <span className="item-name" style={{ fontSize: 15, fontWeight: 600 }}>
+                  {m.name}
+                </span>
+                {m.note && <span className="item-detail">{m.note}</span>}
+                <span className="item-detail" style={{ color: "var(--gold)" }}>
+                  {m.done ? `hit it · ${m.targetDate}` : `${daysUntil(m.targetDate, today)} · ${m.targetDate}`}
+                </span>
               </span>
-              {m.note && <span className="item-detail">{m.note}</span>}
-              <span className="item-detail" style={{ color: "var(--gold)" }}>
-                {m.done ? `hit it · ${m.targetDate}` : `${daysUntil(m.targetDate, today)} · ${m.targetDate}`}
-              </span>
+              {m.done ? <span className="done-chip">Hit</span> : <span className="todo-dot" />}
             </button>
-            <button className="water-log-remove" onClick={() => removeMilestone(m.id)}>
+            <button className="water-log-remove" style={{ padding: "0 14px" }} onClick={() => removeMilestone(m.id)}>
               remove
             </button>
           </div>

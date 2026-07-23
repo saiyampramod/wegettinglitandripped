@@ -28,29 +28,32 @@ const TABS = [
 ];
 
 function useStreak() {
-  const { records, waterGoalMl, today } = useTrackerCtx();
+  const { records, waterGoalMl, habitsList, splitOverrides, today } = useTrackerCtx();
   return useMemo(() => {
+    const profile = { waterGoalMl, habitsList, splitOverrides };
     let s = 0;
     let cursor = fromIso(today);
-    const t = statusFor(records[today], waterGoalMl);
+    const t = statusFor(records[today], profile);
     if (!(t.morning && t.gym)) cursor = addDays(cursor, -1);
     for (let i = 0; i < 365; i++) {
-      const st = statusFor(records[iso(cursor)], waterGoalMl);
+      const st = statusFor(records[iso(cursor)], profile);
       if (st.morning && st.gym) {
         s++;
         cursor = addDays(cursor, -1);
       } else break;
     }
     return s;
-  }, [records, waterGoalMl, today]);
+  }, [records, waterGoalMl, habitsList, splitOverrides, today]);
 }
 
 function Shell() {
   const streak = useStreak();
-  const { saveState, firebaseReady, reminders, today, recordFor, waterGoalMl, customTrackers, milestones, unreadCount } =
-    useTrackerCtx();
+  const {
+    saveState, firebaseReady, reminders, today, recordFor, waterGoalMl,
+    habitsList, splitOverrides, customTrackers, milestones, unreadCount,
+  } = useTrackerCtx();
 
-  useReminderEngine({ reminders, today, recordFor, waterGoalMl, customTrackers, milestones });
+  useReminderEngine({ reminders, today, recordFor, waterGoalMl, habitsList, splitOverrides, customTrackers, milestones });
 
   return (
     <>
