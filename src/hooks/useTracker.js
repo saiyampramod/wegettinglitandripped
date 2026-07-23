@@ -15,6 +15,7 @@ const emptyDoc = () => ({
   habitsList: null, // null → use the default HABITS list
   splitOverrides: {}, // {dayNum: {label?, focus?, tip?, exercises: [...]}} — per-day workout customization
   morningList: null, // null → use the default MORNING template; once set, a fully custom phase list
+  waterQuickAdds: null, // null → use the default WATER_QUICK_ADDS amounts
 });
 
 function readCache(key) {
@@ -118,6 +119,10 @@ export function useTracker(user) {
     setData((prev) => ({ ...prev, waterGoalMl: ml }));
   }, []);
 
+  const setWaterQuickAdds = useCallback((amounts) => {
+    setData((prev) => ({ ...prev, waterQuickAdds: amounts }));
+  }, []);
+
   const addCustomTracker = useCallback((tracker) => {
     setData((prev) => ({ ...prev, customTrackers: [...prev.customTrackers, tracker] }));
   }, []);
@@ -217,6 +222,8 @@ export function useTracker(user) {
     updateRecord,
     waterGoalMl: data.waterGoalMl || WATER_GOAL_ML_DEFAULT,
     setWaterGoalMl,
+    waterQuickAdds: data.waterQuickAdds || null,
+    setWaterQuickAdds,
     customTrackers: data.customTrackers || [],
     addCustomTracker,
     updateCustomTracker,

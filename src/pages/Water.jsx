@@ -6,7 +6,8 @@ import { WATER_GOAL_ML_DEFAULT, WATER_QUICK_ADDS } from "../data/constants";
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 export default function Water() {
-  const { selected, recordFor, updateRecord, today, waterGoalMl, setWaterGoalMl } = useTrackerCtx();
+  const { selected, recordFor, updateRecord, today, waterGoalMl, setWaterGoalMl, waterQuickAdds, setWaterQuickAdds } =
+    useTrackerCtx();
   const rec = recordFor(selected);
   const water = rec.water || { ml: 0, log: [] };
   const goal = waterGoalMl || WATER_GOAL_ML_DEFAULT;
@@ -14,6 +15,9 @@ export default function Water() {
   const [customAmount, setCustomAmount] = useState("");
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState(String(goal));
+  const [editingAmounts, setEditingAmounts] = useState(false);
+  const amounts = waterQuickAdds || WATER_QUICK_ADDS;
+  const amountsCustomized = waterQuickAdds !== null;
 
   const addWater = (amount) => {
     if (!amount || amount <= 0) return;
@@ -92,13 +96,58 @@ export default function Water() {
             <div className="meter-fill" style={{ width: `${pct}%` }} />
           </div>
 
-          <div className="chip-row" style={{ marginTop: 16 }}>
-            {WATER_QUICK_ADDS.map((ml) => (
-              <button key={ml} className="btn" onClick={() => addWater(ml)}>
-                + {ml}ml
-              </button>
-            ))}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16 }}>
+            <span className="field-label" style={{ marginBottom: 0 }}>
+              Quick add
+            </span>
+            <button className="chip" onClick={() => setEditingAmounts((v) => !v)}>
+              {editingAmounts ? "Done editing" : "✎ Edit"}
+            </button>
           </div>
+
+          {editingAmounts ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+              {amounts.map((ml, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    className="field"
+                    type="number"
+                    value={ml}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value, 10) || 0;
+                      setWaterQuickAdds(amounts.map((a, ai) => (ai === i ? n : a)));
+                    }}
+                  />
+                  <button
+                    className="btn danger"
+                    style={{ padding: "8px 10px" }}
+                    onClick={() => setWaterQuickAdds(amounts.filter((_, ai) => ai !== i))}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button className="btn solid" onClick={() => setWaterQuickAdds([...amounts, 250])}>
+                  + Add amount
+                </button>
+                {amountsCustomized && (
+                  <button className="btn ghost" onClick={() => setWaterQuickAdds(null)}>
+                    Reset to default
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="chip-row" style={{ marginTop: 10 }}>
+              {amounts.map((ml) => (
+                <button key={ml} className="btn" onClick={() => addWater(ml)}>
+                  + {ml}ml
+                </button>
+              ))}
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
             <input
               className="field"
