@@ -73,7 +73,7 @@ export default function Login() {
     <div className="auth-screen">
       <div className="auth-card">
         <div className="brand-eyebrow" style={{ textAlign: "center" }}>
-          Mindful Muscle
+          Ripped &amp; Lit
         </div>
         <h1 className="disp brand-title" style={{ textAlign: "center", marginBottom: 18 }}>
           Habit Tracker

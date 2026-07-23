@@ -15,7 +15,7 @@ function fire(tag, title, body) {
 }
 
 export function sendTestNotification() {
-  fire("mm-test", "🔔 Mindful Muscle", "This is what a reminder looks like. You're set up.");
+  fire("mm-test", "🔔 Ripped & Lit", "This is what a reminder looks like. You're set up.");
 }
 
 const dedupeKey = (category, dateStr) => `mm-reminder-fired-${category}-${dateStr}`;

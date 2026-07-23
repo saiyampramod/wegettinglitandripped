@@ -1,4 +1,4 @@
-# Mindful Muscle — Habit Tracker
+# Ripped & Lit — Habit Tracker
 
 A daily habit + PPL workout tracker built to use with training partners. Morning
 mobility routine, a 7-day push/pull/legs split, water logging, performance

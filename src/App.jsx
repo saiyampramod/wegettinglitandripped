@@ -55,7 +55,7 @@ function Shell() {
       <header className="app-header">
         <div className="app-header-inner">
           <div>
-            <div className="brand-eyebrow">Mindful Muscle</div>
+            <div className="brand-eyebrow">Ripped &amp; Lit</div>
             <h1 className="disp brand-title">Habit Tracker</h1>
           </div>
           <div>
