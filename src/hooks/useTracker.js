@@ -166,7 +166,20 @@ export function useTracker(user) {
   const setPhaseItems = useCallback((phaseId, items) => {
     setData((prev) => ({
       ...prev,
-      morningOverrides: { ...(prev.morningOverrides || {}), [phaseId]: { items } },
+      morningOverrides: {
+        ...(prev.morningOverrides || {}),
+        [phaseId]: { ...(prev.morningOverrides?.[phaseId] || {}), items },
+      },
+    }));
+  }, []);
+
+  const setPhaseMeta = useCallback((phaseId, patch) => {
+    setData((prev) => ({
+      ...prev,
+      morningOverrides: {
+        ...(prev.morningOverrides || {}),
+        [phaseId]: { ...(prev.morningOverrides?.[phaseId] || {}), ...patch },
+      },
     }));
   }, []);
 
@@ -236,6 +249,7 @@ export function useTracker(user) {
     resetSplitDay,
     morningOverrides: data.morningOverrides || {},
     setPhaseItems,
+    setPhaseMeta,
     resetMorningPhase,
     needsOnboarding: data.onboarded === false,
     completeOnboarding,

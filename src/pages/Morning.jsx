@@ -6,7 +6,7 @@ import { morningFor } from "../data/constants";
 const newItemId = (phaseId) => `${phaseId}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
 export default function Morning() {
-  const { selected, recordFor, updateRecord, today, morningOverrides, setPhaseItems, resetMorningPhase } =
+  const { selected, recordFor, updateRecord, today, morningOverrides, setPhaseItems, setPhaseMeta, resetMorningPhase } =
     useTrackerCtx();
   const rec = recordFor(selected);
   const [openPhases, setOpenPhases] = useState({ warmup: true });
@@ -86,6 +86,23 @@ export default function Morning() {
 
               {open && editing && (
                 <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div>
+                    <span className="field-label">Phase name</span>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        className="field"
+                        value={phase.phase}
+                        onChange={(e) => setPhaseMeta(phase.id, { phase: e.target.value })}
+                      />
+                      <input
+                        className="field"
+                        type="number"
+                        style={{ width: 70 }}
+                        value={phase.minutes}
+                        onChange={(e) => setPhaseMeta(phase.id, { minutes: parseInt(e.target.value, 10) || 0 })}
+                      />
+                    </div>
+                  </div>
                   {phase.items.map((item) => (
                     <div key={item.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>

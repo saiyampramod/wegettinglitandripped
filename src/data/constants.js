@@ -120,7 +120,7 @@ export const MORNING = [
   },
   {
     id: "pelvic",
-    phase: "Pelvic Floor",
+    phase: "Recovery",
     minutes: 3,
     items: [
       { id: "m16", name: "Quick Kegels", detail: "2 × 10 · contract 1s, relax 1s · rest 30s" },
@@ -140,11 +140,18 @@ export const MORNING = [
 
 export const ALL_MORNING_IDS = MORNING.flatMap((p) => p.items.map((i) => i.id));
 
-/* the morning routine with any per-player phase overrides applied */
+/* the morning routine with any per-player phase overrides applied —
+   a phase can have its title/minutes renamed and/or its items replaced */
 export const morningFor = (morningOverrides) =>
   MORNING.map((phase) => {
     const override = morningOverrides && morningOverrides[phase.id];
-    return override && Array.isArray(override.items) ? { ...phase, items: override.items } : phase;
+    if (!override) return phase;
+    return {
+      ...phase,
+      ...(override.phase !== undefined ? { phase: override.phase } : {}),
+      ...(override.minutes !== undefined ? { minutes: override.minutes } : {}),
+      ...(Array.isArray(override.items) ? { items: override.items } : {}),
+    };
   });
 
 /* ─────────────────────────  PERFORMANCE HABITS  ───────────────────────── */
