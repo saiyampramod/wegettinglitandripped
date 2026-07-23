@@ -7,7 +7,7 @@ const DAYS = [1, 2, 3, 4, 5, 6, 7];
 const newExId = (day) => `d${day}x-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
 export default function Gym() {
-  const { selected, recordFor, updateRecord, today, splitOverrides, setSplitDayExercises, resetSplitDay } =
+  const { selected, recordFor, updateRecord, today, splitOverrides, setSplitDayExercises, setSplitDayMeta, resetSplitDay } =
     useTrackerCtx();
   const rec = recordFor(selected);
   const [viewDay, setViewDay] = useState(null);
@@ -120,6 +120,31 @@ export default function Gym() {
 
         {editing ? (
           <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <span className="field-label">Day name</span>
+              <input
+                className="field"
+                value={day.label}
+                onChange={(e) => setSplitDayMeta(viewDay, { label: e.target.value })}
+              />
+            </div>
+            <div>
+              <span className="field-label">Focus</span>
+              <input
+                className="field"
+                value={day.focus}
+                onChange={(e) => setSplitDayMeta(viewDay, { focus: e.target.value })}
+                placeholder="e.g. Chest · Shoulders · Triceps"
+              />
+            </div>
+            <div>
+              <span className="field-label">Tip</span>
+              <input
+                className="field"
+                value={day.tip}
+                onChange={(e) => setSplitDayMeta(viewDay, { tip: e.target.value })}
+              />
+            </div>
             {day.exercises.map((ex) => (
               <div key={ex.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>

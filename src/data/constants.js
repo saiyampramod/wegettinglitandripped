@@ -140,19 +140,10 @@ export const MORNING = [
 
 export const ALL_MORNING_IDS = MORNING.flatMap((p) => p.items.map((i) => i.id));
 
-/* the morning routine with any per-player phase overrides applied —
-   a phase can have its title/minutes renamed and/or its items replaced */
-export const morningFor = (morningOverrides) =>
-  MORNING.map((phase) => {
-    const override = morningOverrides && morningOverrides[phase.id];
-    if (!override) return phase;
-    return {
-      ...phase,
-      ...(override.phase !== undefined ? { phase: override.phase } : {}),
-      ...(override.minutes !== undefined ? { minutes: override.minutes } : {}),
-      ...(Array.isArray(override.items) ? { items: override.items } : {}),
-    };
-  });
+/* a player's morning routine — a fully custom list once they've touched it
+   at all (add/remove/rename any phase, same freedom Habits already has),
+   or the default MORNING template until then */
+export const morningFor = (morningList) => morningList || MORNING;
 
 /* ─────────────────────────  PERFORMANCE HABITS  ───────────────────────── */
 
@@ -217,11 +208,19 @@ export const emptyRecord = (dateStr) => ({
 export const slug = (s) =>
   s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 30);
 
-/* a split day with any per-player exercise overrides applied */
+/* a split day with any per-player overrides applied — exercises, and now
+   also the day's own label/focus/tip, same rename freedom Morning has */
 export const splitFor = (n, splitOverrides) => {
   const base = SPLIT[n];
   const override = splitOverrides && splitOverrides[n];
-  return override && Array.isArray(override.exercises) ? { ...base, exercises: override.exercises } : base;
+  if (!override) return base;
+  return {
+    ...base,
+    ...(override.label !== undefined ? { label: override.label } : {}),
+    ...(override.focus !== undefined ? { focus: override.focus } : {}),
+    ...(override.tip !== undefined ? { tip: override.tip } : {}),
+    ...(Array.isArray(override.exercises) ? { exercises: override.exercises } : {}),
+  };
 };
 
 /* status of a single day's record against that player's own definitions —
@@ -229,7 +228,7 @@ export const splitFor = (n, splitOverrides) => {
 export const statusFor = (r, profile = {}) => {
   if (!r) return { morning: false, gym: false, habits: false, water: false };
   const habitsList = profile.habitsList || HABITS;
-  const morningIds = morningFor(profile.morningOverrides).flatMap((p) => p.items.map((i) => i.id));
+  const morningIds = morningFor(profile.morningList).flatMap((p) => p.items.map((i) => i.id));
   const morningDone = morningIds.length > 0 && morningIds.every((id) => r.morning && r.morning[id]);
   const day = splitFor(r.splitDay || 4, profile.splitOverrides);
   const isRest = day.exercises.length === 0;

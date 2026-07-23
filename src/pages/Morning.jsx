@@ -4,30 +4,43 @@ import { useTrackerCtx } from "../context/TrackerContext";
 import { morningFor } from "../data/constants";
 
 const newItemId = (phaseId) => `${phaseId}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+const newPhaseId = () => `phase-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
 export default function Morning() {
-  const { selected, recordFor, updateRecord, today, morningOverrides, setPhaseItems, setPhaseMeta, resetMorningPhase } =
-    useTrackerCtx();
+  const { selected, recordFor, updateRecord, today, morningList, setMorningList } = useTrackerCtx();
   const rec = recordFor(selected);
   const [openPhases, setOpenPhases] = useState({ warmup: true });
   const [editing, setEditing] = useState(false);
 
-  const phases = morningFor(morningOverrides);
-  // An empty phase (e.g. a phase someone else's template includes but you
-  // emptied out, or never added to) just clutters the checklist — hide it
-  // outside edit mode, where it's still there to add to if you want it back.
-  const visiblePhases = phases.filter((p) => editing || p.items.length > 0);
-  const allIds = phases.flatMap((p) => p.items.map((i) => i.id));
+  const list = morningFor(morningList);
+  const isCustom = morningList !== null;
+  // An empty phase just clutters the checklist outside edit mode — still
+  // there to add to via Edit, just not shown as a dead section.
+  const visiblePhases = list.filter((p) => editing || p.items.length > 0);
+  const allIds = list.flatMap((p) => p.items.map((i) => i.id));
   const count = allIds.filter((id) => rec.morning[id]).length;
   const pct = allIds.length ? Math.round((count / allIds.length) * 100) : 0;
 
   const toggle = (id) => updateRecord(selected, { morning: { ...rec.morning, [id]: !rec.morning[id] } });
+  const mutate = (nextList) => setMorningList(nextList);
+
+  const editPhaseMeta = (phaseId, patch) => mutate(list.map((p) => (p.id === phaseId ? { ...p, ...patch } : p)));
+  const removePhase = (phaseId) => mutate(list.filter((p) => p.id !== phaseId));
+  const addPhase = () =>
+    mutate([...list, { id: newPhaseId(), phase: "New phase", minutes: 1, items: [] }]);
 
   const editItem = (phase, itemId, patch) =>
-    setPhaseItems(phase.id, phase.items.map((i) => (i.id === itemId ? { ...i, ...patch } : i)));
-  const removeItem = (phase, itemId) => setPhaseItems(phase.id, phase.items.filter((i) => i.id !== itemId));
+    mutate(
+      list.map((p) => (p.id !== phase.id ? p : { ...p, items: p.items.map((i) => (i.id === itemId ? { ...i, ...patch } : i)) }))
+    );
+  const removeItem = (phase, itemId) =>
+    mutate(list.map((p) => (p.id !== phase.id ? p : { ...p, items: p.items.filter((i) => i.id !== itemId) })));
   const addItem = (phase) =>
-    setPhaseItems(phase.id, [...phase.items, { id: newItemId(phase.id), name: "New item", detail: "" }]);
+    mutate(
+      list.map((p) =>
+        p.id !== phase.id ? p : { ...p, items: [...p.items, { id: newItemId(phase.id), name: "New item", detail: "" }] }
+      )
+    );
 
   return (
     <>
@@ -53,7 +66,10 @@ export default function Morning() {
 
       <div className="card">
         <div className="card-head">
-          <div className="card-sub">Your routine — edit any phase to make it yours.</div>
+          <div className="card-sub">
+            Fully yours — add a phase, remove one, rename anything.
+            {isCustom && " (customized)"}
+          </div>
           <div className="progress-track">
             <div className="progress-fill" style={{ width: `${pct}%` }} />
           </div>
@@ -62,7 +78,6 @@ export default function Morning() {
         {visiblePhases.map((phase) => {
           const done = phase.items.filter((i) => rec.morning[i.id]).length;
           const open = editing || !!openPhases[phase.id];
-          const customized = !!(morningOverrides && morningOverrides[phase.id]);
           return (
             <div key={phase.id} style={{ borderBottom: "1px solid var(--border-soft)" }}>
               <button
@@ -75,7 +90,6 @@ export default function Morning() {
                     {phase.phase}
                   </span>
                   <span className="chip">{phase.minutes} min</span>
-                  {customized && <span className="chip active">custom</span>}
                 </span>
                 {!editing && (
                   <span style={{ fontSize: 11, color: done === phase.items.length ? "var(--gold)" : "var(--text-dim)" }}>
@@ -92,14 +106,14 @@ export default function Morning() {
                       <input
                         className="field"
                         value={phase.phase}
-                        onChange={(e) => setPhaseMeta(phase.id, { phase: e.target.value })}
+                        onChange={(e) => editPhaseMeta(phase.id, { phase: e.target.value })}
                       />
                       <input
                         className="field"
                         type="number"
                         style={{ width: 70 }}
                         value={phase.minutes}
-                        onChange={(e) => setPhaseMeta(phase.id, { minutes: parseInt(e.target.value, 10) || 0 })}
+                        onChange={(e) => editPhaseMeta(phase.id, { minutes: parseInt(e.target.value, 10) || 0 })}
                       />
                     </div>
                   </div>
@@ -129,11 +143,9 @@ export default function Morning() {
                     <button className="btn solid" onClick={() => addItem(phase)}>
                       + Add item
                     </button>
-                    {customized && (
-                      <button className="btn ghost" onClick={() => resetMorningPhase(phase.id)}>
-                        Reset to default
-                      </button>
-                    )}
+                    <button className="btn danger" onClick={() => removePhase(phase.id)}>
+                      Remove this phase
+                    </button>
                   </div>
                 </div>
               )}
@@ -160,6 +172,19 @@ export default function Morning() {
             </div>
           );
         })}
+
+        {editing && (
+          <div className="card-body" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button className="btn solid" onClick={addPhase}>
+              + Add phase
+            </button>
+            {isCustom && (
+              <button className="btn ghost" onClick={() => setMorningList(null)}>
+                Reset everything to default
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </>
   );

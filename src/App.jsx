@@ -29,9 +29,9 @@ const TABS = [
 ];
 
 function useStreak() {
-  const { records, waterGoalMl, habitsList, splitOverrides, morningOverrides, today } = useTrackerCtx();
+  const { records, waterGoalMl, habitsList, splitOverrides, morningList, today } = useTrackerCtx();
   return useMemo(() => {
-    const profile = { waterGoalMl, habitsList, splitOverrides, morningOverrides };
+    const profile = { waterGoalMl, habitsList, splitOverrides, morningList };
     let s = 0;
     let cursor = fromIso(today);
     const t = statusFor(records[today], profile);
@@ -44,18 +44,18 @@ function useStreak() {
       } else break;
     }
     return s;
-  }, [records, waterGoalMl, habitsList, splitOverrides, morningOverrides, today]);
+  }, [records, waterGoalMl, habitsList, splitOverrides, morningList, today]);
 }
 
 function Shell() {
   const streak = useStreak();
   const {
     saveState, firebaseReady, reminders, today, recordFor, waterGoalMl,
-    habitsList, splitOverrides, morningOverrides, customTrackers, milestones, unreadCount, received,
+    habitsList, splitOverrides, morningList, customTrackers, milestones, unreadCount, received,
   } = useTrackerCtx();
 
   useReminderEngine({
-    reminders, today, recordFor, waterGoalMl, habitsList, splitOverrides, morningOverrides, customTrackers, milestones,
+    reminders, today, recordFor, waterGoalMl, habitsList, splitOverrides, morningList, customTrackers, milestones,
   });
   useInboxNotifications(received, reminders);
 

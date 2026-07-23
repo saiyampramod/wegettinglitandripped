@@ -13,7 +13,7 @@ const CATS = [
 const DOW = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 export default function Versus() {
-  const { playerName, uid, records, waterGoalMl, habitsList, splitOverrides, morningOverrides, today, firebaseReady } =
+  const { playerName, uid, records, waterGoalMl, habitsList, splitOverrides, morningList, today, firebaseReady } =
     useTrackerCtx();
   const { players, state } = useLeaderboard();
   const [expanded, setExpanded] = useState(null);
@@ -28,7 +28,7 @@ export default function Versus() {
       waterGoalMl: p.waterGoalMl || WATER_GOAL_ML_DEFAULT,
       habitsList: p.habitsList || undefined,
       splitOverrides: p.splitOverrides || undefined,
-      morningOverrides: p.morningOverrides || undefined,
+      morningList: p.morningList || undefined,
     });
 
   const scoreOf = (p) =>
@@ -94,7 +94,7 @@ export default function Versus() {
               waterGoalMl,
               habitsList,
               splitOverrides,
-              morningOverrides,
+              morningList,
               isMe: true,
             };
             const myScore = scoreOf(me);

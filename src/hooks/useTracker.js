@@ -13,8 +13,8 @@ const emptyDoc = () => ({
   waterGoalMl: WATER_GOAL_ML_DEFAULT,
   reminders: REMINDER_DEFAULTS,
   habitsList: null, // null → use the default HABITS list
-  splitOverrides: {}, // {dayNum: {exercises: [...]}} — per-day workout customization
-  morningOverrides: {}, // {phaseId: {items: [...]}} — per-phase morning routine customization
+  splitOverrides: {}, // {dayNum: {label?, focus?, tip?, exercises: [...]}} — per-day workout customization
+  morningList: null, // null → use the default MORNING template; once set, a fully custom phase list
 });
 
 function readCache(key) {
@@ -151,7 +151,20 @@ export function useTracker(user) {
   const setSplitDayExercises = useCallback((dayNum, exercises) => {
     setData((prev) => ({
       ...prev,
-      splitOverrides: { ...(prev.splitOverrides || {}), [dayNum]: { exercises } },
+      splitOverrides: {
+        ...(prev.splitOverrides || {}),
+        [dayNum]: { ...(prev.splitOverrides?.[dayNum] || {}), exercises },
+      },
+    }));
+  }, []);
+
+  const setSplitDayMeta = useCallback((dayNum, patch) => {
+    setData((prev) => ({
+      ...prev,
+      splitOverrides: {
+        ...(prev.splitOverrides || {}),
+        [dayNum]: { ...(prev.splitOverrides?.[dayNum] || {}), ...patch },
+      },
     }));
   }, []);
 
@@ -163,50 +176,22 @@ export function useTracker(user) {
     });
   }, []);
 
-  const setPhaseItems = useCallback((phaseId, items) => {
-    setData((prev) => ({
-      ...prev,
-      morningOverrides: {
-        ...(prev.morningOverrides || {}),
-        [phaseId]: { ...(prev.morningOverrides?.[phaseId] || {}), items },
-      },
-    }));
-  }, []);
-
-  const setPhaseMeta = useCallback((phaseId, patch) => {
-    setData((prev) => ({
-      ...prev,
-      morningOverrides: {
-        ...(prev.morningOverrides || {}),
-        [phaseId]: { ...(prev.morningOverrides?.[phaseId] || {}), ...patch },
-      },
-    }));
-  }, []);
-
-  const resetMorningPhase = useCallback((phaseId) => {
-    setData((prev) => {
-      const next = { ...(prev.morningOverrides || {}) };
-      delete next[phaseId];
-      return { ...prev, morningOverrides: next };
-    });
+  const setMorningList = useCallback((list) => {
+    setData((prev) => ({ ...prev, morningList: list }));
   }, []);
 
   const completeOnboarding = useCallback((choice) => {
     setData((prev) => {
       if (choice !== "blank") {
-        // The template's Pelvic Floor phase is a personal addition, not part
-        // of the general default — new joinees get everything else, minus that.
-        return { ...prev, onboarded: true, morningOverrides: { pelvic: { items: [] } } };
+        // Recovery (née Pelvic Floor) is a personal addition, not a general
+        // default — new joinees get every other default phase, minus that.
+        return { ...prev, onboarded: true, morningList: MORNING.filter((p) => p.id !== "pelvic") };
       }
       const blankSplit = {};
       [1, 2, 3, 5, 6].forEach((n) => {
         blankSplit[n] = { exercises: [] };
       });
-      const blankMorning = {};
-      MORNING.forEach((phase) => {
-        blankMorning[phase.id] = { items: [] };
-      });
-      return { ...prev, onboarded: true, habitsList: [], splitOverrides: blankSplit, morningOverrides: blankMorning };
+      return { ...prev, onboarded: true, habitsList: [], splitOverrides: blankSplit, morningList: [] };
     });
   }, []);
 
@@ -246,11 +231,10 @@ export function useTracker(user) {
     setHabitsList,
     splitOverrides: data.splitOverrides || {},
     setSplitDayExercises,
+    setSplitDayMeta,
     resetSplitDay,
-    morningOverrides: data.morningOverrides || {},
-    setPhaseItems,
-    setPhaseMeta,
-    resetMorningPhase,
+    morningList: data.morningList || null,
+    setMorningList,
     needsOnboarding: data.onboarded === false,
     completeOnboarding,
     today: iso(new Date()),

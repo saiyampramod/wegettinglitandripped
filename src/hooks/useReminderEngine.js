@@ -44,11 +44,11 @@ export function useReminderEngine(ctx) {
   useEffect(() => {
     const tick = () => {
       if (!notificationsSupported() || Notification.permission !== "granted") return;
-      const { reminders, today, recordFor, waterGoalMl, habitsList, splitOverrides, morningOverrides, customTrackers, milestones } =
+      const { reminders, today, recordFor, waterGoalMl, habitsList, splitOverrides, morningList, customTrackers, milestones } =
         ctxRef.current;
       const now = new Date();
       const rec = recordFor(today);
-      const st = statusFor(rec, { waterGoalMl, habitsList, splitOverrides, morningOverrides });
+      const st = statusFor(rec, { waterGoalMl, habitsList, splitOverrides, morningList });
 
       if (reminders.water.enabled && !st.water) {
         const intervalMs = Math.max(5, reminders.water.intervalMin) * 60 * 1000;
