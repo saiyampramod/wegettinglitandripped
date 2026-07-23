@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// Trust model: there's no login here, just a name you pick in the Versus
+// tab. Anyone who has this app's URL can read or write any player's doc —
+// that's the intentional trade-off for a zero-setup "share a link with your
+// gym buddies" tool. Don't put anything sensitive in it. If you want real
+// per-person write protection later, add Firebase Anonymous Auth and key
+// these rules off request.auth.uid instead of trusting the client.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /trackers/{playerId} {
+      allow read: if true;
+      allow write: if request.resource.data.name is string
+                   && request.resource.data.name.size() > 0
+                   && request.resource.data.name.size() < 40;
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
