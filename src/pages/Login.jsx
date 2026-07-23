@@ -15,8 +15,14 @@ function friendlyError(code) {
       return "Email or password didn't match.";
     case "auth/too-many-requests":
       return "Too many attempts — wait a bit and try again.";
+    case "auth/operation-not-allowed":
+      return "Email/password sign-in isn't enabled on this Firebase project yet.";
+    case "auth/network-request-failed":
+      return "Network error reaching Firebase — check your connection and try again.";
+    case "auth/configuration-not-found":
+      return "Firebase Authentication isn't set up on this project yet (auth/configuration-not-found).";
     default:
-      return "Something went wrong. Try again.";
+      return `Something went wrong (${code || "unknown error"}). Try again.`;
   }
 }
 
