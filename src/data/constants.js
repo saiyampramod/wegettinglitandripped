@@ -170,6 +170,7 @@ export const REMINDER_DEFAULTS = {
   morning: { enabled: false, time: "09:00" },
   gym: { enabled: false, time: "18:00" },
   custom: { enabled: false, time: "20:00" },
+  messages: { enabled: true },
 };
 
 /* ─────────────────────────  DATE HELPERS  ───────────────────────── */

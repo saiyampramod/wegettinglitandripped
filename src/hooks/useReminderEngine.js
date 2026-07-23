@@ -110,3 +110,34 @@ export function useReminderEngine(ctx) {
     return () => clearInterval(id);
   }, []);
 }
+
+/**
+ * Fires a notification the moment a new message/task shows up in `received`
+ * (which is already live via Firestore onSnapshot in useInbox — this just
+ * watches it). The first render seeds the "seen" set without notifying, so
+ * opening the app doesn't re-announce your entire backlog; only genuinely
+ * new arrivals after that fire. Same in-app-only caveat as everything else
+ * here — it can't wake a closed app, only one already open in a tab.
+ */
+export function useInboxNotifications(received, reminders) {
+  const seenRef = useRef(null);
+
+  useEffect(() => {
+    if (!Array.isArray(received)) return;
+    const ids = received.map((m) => m.id);
+
+    if (seenRef.current === null) {
+      seenRef.current = new Set(ids);
+      return;
+    }
+
+    const fresh = received.filter((m) => !seenRef.current.has(m.id));
+    ids.forEach((mid) => seenRef.current.add(mid));
+
+    if (!fresh.length || !reminders?.messages?.enabled) return;
+    fresh.forEach((m) => {
+      const icon = m.type === "task" ? "✅" : "💬";
+      fire(`inbox-${m.id}`, `${icon} ${m.fromName || "Someone"}`, m.text);
+    });
+  }, [received, reminders]);
+}

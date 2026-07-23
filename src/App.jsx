@@ -3,7 +3,7 @@ import { NavLink, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { TrackerProvider, useTrackerCtx } from "./context/TrackerContext";
 import { addDays, fromIso, iso, statusFor } from "./data/constants";
-import { useReminderEngine } from "./hooks/useReminderEngine";
+import { useInboxNotifications, useReminderEngine } from "./hooks/useReminderEngine";
 import Dashboard from "./pages/Dashboard";
 import Morning from "./pages/Morning";
 import Gym from "./pages/Gym";
@@ -51,12 +51,13 @@ function Shell() {
   const streak = useStreak();
   const {
     saveState, firebaseReady, reminders, today, recordFor, waterGoalMl,
-    habitsList, splitOverrides, morningOverrides, customTrackers, milestones, unreadCount,
+    habitsList, splitOverrides, morningOverrides, customTrackers, milestones, unreadCount, received,
   } = useTrackerCtx();
 
   useReminderEngine({
     reminders, today, recordFor, waterGoalMl, habitsList, splitOverrides, morningOverrides, customTrackers, milestones,
   });
+  useInboxNotifications(received, reminders);
 
   return (
     <>

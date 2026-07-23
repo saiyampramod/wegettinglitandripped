@@ -31,6 +31,13 @@ const ROWS = [
     desc: "Evening summary of trackers still short of target and milestones due within 3 days.",
     kind: "time",
   },
+  {
+    key: "messages",
+    icon: "✉️",
+    title: "New messages & tasks",
+    desc: "Notify the moment a training partner sends you something in the Inbox.",
+    kind: "toggle",
+  },
 ];
 
 export default function Reminders() {
@@ -127,7 +134,7 @@ export default function Reminders() {
               <span className="card-sub" style={{ marginTop: 0 }}>
                 {row.desc}
               </span>
-              {row.kind === "interval" ? (
+              {row.kind === "toggle" ? null : row.kind === "interval" ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span className="field-label" style={{ marginBottom: 0 }}>
                     every
