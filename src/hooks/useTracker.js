@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { db, firebaseReady } from "../firebase";
-import { emptyRecord, iso, REMINDER_DEFAULTS, slug, WATER_GOAL_ML_DEFAULT } from "../data/constants";
+import { emptyRecord, iso, REMINDER_DEFAULTS, WATER_GOAL_ML_DEFAULT } from "../data/constants";
 
-const NAME_KEY = "mm-profile-name";
-const GUEST_CACHE_KEY = "mm-guest-cache";
-const cacheKeyFor = (name) => (name ? `mm-cache-${slug(name)}` : GUEST_CACHE_KEY);
+const LOCAL_CACHE_KEY = "mm-local-cache";
+const cacheKeyFor = (uid) => (uid ? `mm-cache-${uid}` : LOCAL_CACHE_KEY);
 
 const emptyDoc = () => ({
   records: {},
@@ -32,21 +31,24 @@ function writeCache(key, value) {
 }
 
 /**
- * Owns one player's tracker doc: daily records, custom trackers, milestones.
- * Lives in Firestore at trackers/{slug(name)} when Firebase is configured and
- * a name has been chosen; otherwise (or before joining) it falls back to a
- * localStorage-only "guest" doc on this device so the app is fully usable
- * pre-setup. Joining migrates whatever guest data exists into the named doc.
+ * Owns one player's tracker doc: daily records, custom trackers, milestones,
+ * reminders. Lives in Firestore at trackers/{uid} once signed in (uid comes
+ * from Firebase Auth — see AuthContext); AuthGate keeps this hook from ever
+ * mounting with firebaseReady=true and no user. When Firebase isn't
+ * configured at all, it runs against a single localStorage doc on this
+ * device instead, so local dev works without any setup.
  */
-export function useTracker() {
-  const [playerName, setPlayerNameState] = useState(() => localStorage.getItem(NAME_KEY) || "");
-  const [data, setData] = useState(() => readCache(cacheKeyFor(localStorage.getItem(NAME_KEY))) || emptyDoc());
-  const [loaded, setLoaded] = useState(!firebaseReady || !localStorage.getItem(NAME_KEY));
+export function useTracker(user) {
+  const uid = user?.uid || null;
+  const displayName = user?.displayName || user?.email || "You";
+
+  const [data, setData] = useState(() => readCache(cacheKeyFor(uid)) || emptyDoc());
+  const [loaded, setLoaded] = useState(!firebaseReady || !uid);
   const [saveState, setSaveState] = useState("idle");
   const saveTimer = useRef(null);
   const skipNextWrite = useRef(false);
 
-  const docRef = playerName && firebaseReady ? doc(db, "trackers", slug(playerName)) : null;
+  const docRef = uid && firebaseReady ? doc(db, "trackers", uid) : null;
 
   useEffect(() => {
     if (!docRef) {
@@ -57,10 +59,8 @@ export function useTracker() {
     const unsub = onSnapshot(
       docRef,
       (snap) => {
-        if (snap.exists()) {
-          skipNextWrite.current = true;
-          setData({ ...emptyDoc(), ...snap.data() });
-        }
+        skipNextWrite.current = true;
+        setData(snap.exists() ? { ...emptyDoc(), ...snap.data() } : emptyDoc());
         setLoaded(true);
       },
       () => setLoaded(true)
@@ -72,7 +72,7 @@ export function useTracker() {
   // Firestore (or localStorage, offline) catches up shortly after.
   useEffect(() => {
     if (!loaded) return;
-    writeCache(cacheKeyFor(playerName), data);
+    writeCache(cacheKeyFor(uid), data);
     if (skipNextWrite.current) {
       skipNextWrite.current = false;
       return;
@@ -82,7 +82,7 @@ export function useTracker() {
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       try {
-        await setDoc(docRef, { ...data, name: playerName, updatedAt: serverTimestamp() }, { merge: true });
+        await setDoc(docRef, { ...data, name: displayName, updatedAt: serverTimestamp() }, { merge: true });
         setSaveState("saved");
         setTimeout(() => setSaveState((s) => (s === "saved" ? "idle" : s)), 1500);
       } catch {
@@ -91,26 +91,7 @@ export function useTracker() {
     }, 500);
     return () => clearTimeout(saveTimer.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, loaded, docRef?.path]);
-
-  const joinAs = useCallback(
-    async (name) => {
-      const clean = name.trim();
-      if (!clean) return;
-      const guest = readCache(GUEST_CACHE_KEY);
-      localStorage.setItem(NAME_KEY, clean);
-      setPlayerNameState(clean);
-      if (firebaseReady) {
-        const ref = doc(db, "trackers", slug(clean));
-        const base = guest ? { ...emptyDoc(), ...guest } : emptyDoc();
-        await setDoc(ref, { ...base, name: clean, updatedAt: serverTimestamp() }, { merge: true });
-      } else if (guest) {
-        writeCache(cacheKeyFor(clean), guest);
-        setData(guest);
-      }
-    },
-    []
-  );
+  }, [data, loaded, docRef?.path, displayName]);
 
   const updateRecord = useCallback((date, patch) => {
     setData((prev) => {
@@ -166,8 +147,8 @@ export function useTracker() {
     loaded,
     saveState,
     firebaseReady,
-    playerName,
-    joinAs,
+    uid,
+    playerName: firebaseReady ? displayName : null,
     records: data.records,
     recordFor,
     updateRecord,

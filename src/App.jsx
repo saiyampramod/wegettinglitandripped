@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { TrackerProvider, useTrackerCtx } from "./context/TrackerContext";
 import { addDays, fromIso, iso, statusFor } from "./data/constants";
 import { useReminderEngine } from "./hooks/useReminderEngine";
@@ -11,6 +12,7 @@ import Habits from "./pages/Habits";
 import Custom from "./pages/Custom";
 import Versus from "./pages/Versus";
 import Reminders from "./pages/Reminders";
+import Login from "./pages/Login";
 
 const TABS = [
   { to: "/", label: "Today", end: true },
@@ -43,7 +45,7 @@ function useStreak() {
 
 function Shell() {
   const streak = useStreak();
-  const { saveState, playerName, firebaseReady, reminders, today, recordFor, waterGoalMl, customTrackers, milestones } =
+  const { saveState, firebaseReady, reminders, today, recordFor, waterGoalMl, customTrackers, milestones } =
     useTrackerCtx();
 
   useReminderEngine({ reminders, today, recordFor, waterGoalMl, customTrackers, milestones });
@@ -94,10 +96,8 @@ function Shell() {
             ? "saved"
             : saveState === "error"
             ? "couldn't sync — changes are kept on this device"
-            : firebaseReady && playerName
-            ? "synced"
             : firebaseReady
-            ? "playing as guest · join in Versus to sync"
+            ? "synced"
             : "local device only"}
         </div>
       </div>
@@ -105,10 +105,28 @@ function Shell() {
   );
 }
 
+function AuthGate({ children }) {
+  const { user, authLoading, firebaseReady } = useAuth();
+  if (!firebaseReady) return children;
+  if (authLoading) {
+    return (
+      <div className="auth-screen">
+        <div className="brand-eyebrow">Mindful Muscle</div>
+      </div>
+    );
+  }
+  if (!user) return <Login />;
+  return children;
+}
+
 export default function App() {
   return (
-    <TrackerProvider>
-      <Shell />
-    </TrackerProvider>
+    <AuthProvider>
+      <AuthGate>
+        <TrackerProvider>
+          <Shell />
+        </TrackerProvider>
+      </AuthGate>
+    </AuthProvider>
   );
 }

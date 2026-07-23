@@ -1,14 +1,19 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 import { useTracker } from "../hooks/useTracker";
+import { useAuth } from "./AuthContext";
 import { iso } from "../data/constants";
 
 const Ctx = createContext(null);
 
 export function TrackerProvider({ children }) {
-  const tracker = useTracker();
+  const { user, signOutUser } = useAuth();
+  const tracker = useTracker(user);
   const [selected, setSelected] = useState(tracker.today);
 
-  const value = useMemo(() => ({ ...tracker, selected, setSelected }), [tracker, selected]);
+  const value = useMemo(
+    () => ({ ...tracker, selected, setSelected, email: user?.email || null, signOutUser }),
+    [tracker, selected, user, signOutUser]
+  );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

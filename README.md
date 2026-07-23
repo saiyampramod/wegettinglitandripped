@@ -18,8 +18,10 @@ each as its own section instead of one long scrolling page.
 - **Custom** — add your own daily trackers (name, icon, unit, daily target —
   reading, screen time, meds, steps, anything) or one-off milestones with a
   target date.
-- **Versus** — a live leaderboard shared with whoever else opens the app and
-  joins with a name. Updates in real time via Firestore, no refresh button.
+- **Versus** — a live leaderboard shared with whoever else signs up. Updates
+  in real time via Firestore, no refresh button. Tap any row to expand a
+  day-by-day, category-by-category breakdown of exactly what that person hit
+  or missed this week, plus a "missed N×" summary per category.
 - **Reminders** — per-person, in-app browser notifications: a repeating
   hydration nudge, and once-daily nudges for morning routine, gym, and a
   custom-trackers/milestones evening check-in. These fire only while the app
@@ -34,47 +36,53 @@ npm install
 npm run dev
 ```
 
-The app works immediately against local storage on this device — you don't
-need Firebase to try it out. To get the live, cross-device, shared-with-friends
-part working:
+The app works immediately against local storage on this device with no sign-in
+at all — you don't need Firebase to try it out. To turn on real accounts and
+the live, cross-device, shared-with-friends part:
 
 1. Create a free project at [firebase.google.com](https://firebase.google.com).
 2. Enable **Firestore Database** (production mode is fine).
-3. In Project settings → General → Your apps, add a Web app and copy the
+3. Enable **Authentication → Sign-in method → Email/Password**.
+4. In Project settings → General → Your apps, add a Web app and copy the
    config values.
-4. Copy `.env.example` to `.env.local` and fill in those values.
-5. Deploy `firestore.rules` from this repo (Firestore → Rules tab, paste and
+5. Copy `.env.example` to `.env.local` and fill in those values.
+6. Deploy `firestore.rules` from this repo (Firestore → Rules tab, paste and
    publish — or `firebase deploy --only firestore:rules` with the Firebase
    CLI).
-6. Restart `npm run dev`. Open **Versus**, pick a name, and you're synced.
-   Send the same URL to a training partner — once they pick their own name,
-   they show up on the leaderboard live.
+7. Restart `npm run dev`. You'll now be asked to create an account or sign
+   in before the app loads. Send the same URL to a training partner — once
+   they create their own account, they show up on the Versus leaderboard
+   live.
 
 ## Data model
 
-Each player is one Firestore document at `trackers/{slugified-name}`:
+Each player is one Firestore document at `trackers/{firebaseAuthUid}`:
 
 ```
 {
-  name: "Alex",
+  name: "Alex",              // the display name chosen at sign-up
   waterGoalMl: 3200,
   records: { "2026-07-23": { morning: {...}, gym: {...}, habits: {...}, water: {ml, log}, custom: {...}, splitDay, gymManualDone } },
   customTrackers: [{ id, name, icon, unit, dailyTarget, step }],
   milestones: [{ id, name, note, targetDate, done }],
+  reminders: { water: {...}, morning: {...}, gym: {...}, custom: {...} },
 }
 ```
 
-Before you've picked a name, the app runs in "guest" mode against
-`localStorage` only; joining migrates that local data into your named
-Firestore doc so nothing you logged pre-setup is lost.
+Without Firebase configured, the app runs entirely against a single
+`localStorage` doc on that device — no account, no sync, single user. There's
+no migration path from local-only into a real account; local mode is meant
+for trying the app out or for offline solo use, not as a staging area before
+signing up.
 
-## Security note
+## Security model
 
-There's no login — just a name. Anyone with the app URL can read or write
-any player's doc (see the comment in `firestore.rules`). That's a deliberate
-trade-off for zero-setup sharing with people you trust; it's not meant to
-hold sensitive data. If you want real per-person write protection, add
-Firebase Anonymous Auth and key the rules off `request.auth.uid`.
+Real accounts via Firebase Auth (email/password) — each player's doc lives
+at `trackers/{uid}`, and Firestore rules only let the signed-in owner write
+their own doc (`request.auth.uid == uid`), so nobody can edit or wipe someone
+else's data. Any signed-in user can *read* any player's doc — that's what
+makes the Versus leaderboard and the "what did they miss" breakdown work.
+See the comment in `firestore.rules` for the exact rule.
 
 ## Build
 

@@ -2,27 +2,49 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTrackerCtx } from "../context/TrackerContext";
 import { useLeaderboard } from "../hooks/useLeaderboard";
-import { addDays, fromIso, iso, mondayOf, slug, statusFor, WATER_GOAL_ML_DEFAULT } from "../data/constants";
+import { addDays, fromIso, iso, mondayOf, statusFor, WATER_GOAL_ML_DEFAULT } from "../data/constants";
+
+const CATS = [
+  { key: "morning", icon: "🌅", label: "Morning" },
+  { key: "gym", icon: "🏋️", label: "Gym" },
+  { key: "water", icon: "💧", label: "Water" },
+  { key: "habits", icon: "⚡", label: "Habits" },
+];
+const DOW = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 export default function Versus() {
-  const { playerName, joinAs, records, waterGoalMl, today, firebaseReady } = useTrackerCtx();
+  const { playerName, uid, records, waterGoalMl, today, firebaseReady } = useTrackerCtx();
   const { players, state } = useLeaderboard();
-  const [nameInput, setNameInput] = useState("");
+  const [expanded, setExpanded] = useState(null);
 
   const wkStart = mondayOf(fromIso(today));
   const wkDates = Array.from({ length: 7 }, (_, i) => iso(addDays(wkStart, i)));
 
+  const statusOf = (p, ds) => statusFor(p.records && p.records[ds], p.waterGoalMl || WATER_GOAL_ML_DEFAULT);
+
   const scoreOf = (p) =>
     wkDates.reduce((sum, ds) => {
-      const st = statusFor(p.records && p.records[ds], p.waterGoalMl || WATER_GOAL_ML_DEFAULT);
       if (!p.records || !p.records[ds]) return sum;
+      const st = statusOf(p, ds);
       return sum + (st.morning ? 1 : 0) + (st.gym ? 1 : 0) + (st.habits ? 1 : 0) + (st.water ? 1 : 0);
     }, 0);
 
   const pointsOf = (p, ds) => {
     if (!p.records || !p.records[ds]) return 0;
-    const st = statusFor(p.records[ds], p.waterGoalMl || WATER_GOAL_ML_DEFAULT);
+    const st = statusOf(p, ds);
     return (st.morning ? 1 : 0) + (st.gym ? 1 : 0) + (st.habits ? 1 : 0) + (st.water ? 1 : 0);
+  };
+
+  // How many of the past days (up to and including today) each category was missed.
+  const missesOf = (p) => {
+    const counts = { morning: 0, gym: 0, water: 0, habits: 0 };
+    wkDates.filter((ds) => ds <= today).forEach((ds) => {
+      const st = statusOf(p, ds);
+      CATS.forEach((c) => {
+        if (!st[c.key]) counts[c.key]++;
+      });
+    });
+    return counts;
   };
 
   return (
@@ -50,62 +72,98 @@ export default function Versus() {
             with your training partners.
           </div>
         </div>
-      ) : !playerName ? (
-        <div className="card">
-          <div className="card-body">
-            <p style={{ margin: "0 0 12px", fontSize: 13, color: "#b5afa2", lineHeight: 1.5 }}>
-              Pick a name to join the scoreboard. Your name and daily progress become visible to everyone using this
-              tracker, and your data syncs live across any device you sign into with this name.
-            </p>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input
-                className="field"
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && joinAs(nameInput)}
-                placeholder="Your name"
-              />
-              <button className="btn solid" onClick={() => joinAs(nameInput)}>
-                Join
-              </button>
-            </div>
-          </div>
-        </div>
       ) : (
         <div className="card">
           {(() => {
-            const me = { name: playerName, records, waterGoalMl, isMe: true };
-            const others = players.filter((p) => slug(p.name || "") !== slug(playerName));
+            const me = { id: uid, name: playerName, records, waterGoalMl, isMe: true };
+            const others = players.filter((p) => p.id !== uid);
             const board = [me, ...others].map((p) => ({ ...p, score: scoreOf(p) })).sort((a, b) => b.score - a.score);
             if (state === "loading") return <div className="empty-note">Loading rivals…</div>;
-            return board.map((p, i) => (
-              <div key={(p.name || "player") + i} className={"lb-row" + (p.isMe ? " me" : "")}>
-                <span className={"lb-rank" + (i === 0 ? " first" : "")}>{i + 1}</span>
-                <span className={"lb-name" + (p.isMe ? " me" : "")}>
-                  {p.name} {p.isMe ? "(you)" : ""}
-                </span>
-                <span className="lb-dots">
-                  {wkDates.map((ds) => {
-                    const pts = pointsOf(p, ds);
-                    return (
-                      <span
-                        key={ds}
-                        className={"lb-dot" + (pts === 4 ? " full" : pts > 0 ? " partial" : "")}
-                        title={`${ds}: ${pts}/4`}
-                      />
-                    );
-                  })}
-                </span>
-                <span className={"lb-score" + (i === 0 ? " first" : "")}>
-                  {p.score}
-                  <span className="lb-score-max">/28</span>
-                </span>
-              </div>
-            ));
+            return board.map((p, i) => {
+              const id = p.id || p.name || `player-${i}`;
+              const isOpen = expanded === id;
+              const misses = isOpen ? missesOf(p) : null;
+              return (
+                <div key={id}>
+                  <button
+                    className={"lb-row" + (p.isMe ? " me" : "")}
+                    style={{ width: "100%", background: "none", border: "none", cursor: "pointer" }}
+                    onClick={() => setExpanded(isOpen ? null : id)}
+                  >
+                    <span className={"lb-rank" + (i === 0 ? " first" : "")}>{i + 1}</span>
+                    <span className={"lb-name" + (p.isMe ? " me" : "")}>
+                      {p.name} {p.isMe ? "(you)" : ""}
+                    </span>
+                    <span className="lb-dots">
+                      {wkDates.map((ds) => {
+                        const pts = pointsOf(p, ds);
+                        return (
+                          <span
+                            key={ds}
+                            className={"lb-dot" + (pts === 4 ? " full" : pts > 0 ? " partial" : "")}
+                            title={`${ds}: ${pts}/4`}
+                          />
+                        );
+                      })}
+                    </span>
+                    <span className={"lb-score" + (i === 0 ? " first" : "")}>
+                      {p.score}
+                      <span className="lb-score-max">/28</span>
+                    </span>
+                    <span className="lb-caret">{isOpen ? "▾" : "▸"}</span>
+                  </button>
+
+                  {isOpen && (
+                    <div className="lb-detail">
+                      {wkDates.map((ds) => {
+                        const st = statusOf(p, ds);
+                        const hasRecord = !!(p.records && p.records[ds]);
+                        const isFuture = ds > today;
+                        return (
+                          <div key={ds} className="lb-detail-row">
+                            <span className="lb-detail-day">
+                              {DOW[(fromIso(ds).getDay() + 6) % 7]} {fromIso(ds).getDate()}
+                            </span>
+                            <span className="lb-detail-icons">
+                              {isFuture ? (
+                                <span className="lb-detail-future">—</span>
+                              ) : (
+                                CATS.map((c) => (
+                                  <span
+                                    key={c.key}
+                                    className={"lb-detail-icon" + (st[c.key] ? " hit" : " miss")}
+                                    title={`${c.label}: ${st[c.key] ? "done" : "missed"}`}
+                                  >
+                                    {c.icon}
+                                  </span>
+                                ))
+                              )}
+                            </span>
+                            {!isFuture && !hasRecord && <span className="lb-detail-note">no activity logged</span>}
+                          </div>
+                        );
+                      })}
+                      <div className="lb-miss-summary">
+                        {CATS.map((c) =>
+                          misses[c.key] > 0 ? (
+                            <span key={c.key} className="chip" style={{ borderColor: "var(--danger)", color: "var(--danger)" }}>
+                              {c.icon} {c.label} missed {misses[c.key]}×
+                            </span>
+                          ) : null
+                        )}
+                        {CATS.every((c) => misses[c.key] === 0) && (
+                          <span className="chip active">Clean week so far</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            });
           })()}
           <div style={{ padding: "10px 16px", fontSize: 11, color: "var(--text-faint)", lineHeight: 1.5 }}>
-            Send your training partner the app link — once they join with their name, they show up here
-            automatically, live.
+            Send your training partner the app link — once they create an account, they show up here automatically,
+            live. Tap anyone's row to see exactly what they've missed this week.
           </div>
         </div>
       )}

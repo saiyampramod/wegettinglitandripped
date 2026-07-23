@@ -34,7 +34,7 @@ const ROWS = [
 ];
 
 export default function Reminders() {
-  const { reminders, updateReminders } = useTrackerCtx();
+  const { reminders, updateReminders, playerName, email, signOutUser, firebaseReady } = useTrackerCtx();
   const [permission, setPermission] = useState(permissionState());
 
   const enableNotifications = async () => {
@@ -53,8 +53,26 @@ export default function Reminders() {
       <div className="page-title-row">
         <h2 className="disp page-title">Reminders</h2>
       </div>
+
+      {firebaseReady && (
+        <div className="card">
+          <div
+            className="card-body"
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+          >
+            <span>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>{playerName}</span>
+              <span className="item-detail">{email}</span>
+            </span>
+            <button className="btn ghost" onClick={signOutUser}>
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="card-sub" style={{ marginBottom: 14 }}>
-        In-app browser notifications — fire only while this tab is open, no account or server needed.
+        In-app browser notifications — fire only while this tab is open.
       </div>
 
       {!supported ? (
