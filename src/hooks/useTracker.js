@@ -59,7 +59,11 @@ export function useTracker(user) {
     const unsub = onSnapshot(
       docRef,
       (snap) => {
-        skipNextWrite.current = true;
+        // Only skip the next write-through when we just loaded real server
+        // data — a brand-new account has no doc yet, and that first write
+        // is what creates it (with `name` set) so they show up in Versus
+        // right away instead of only after their first checkbox tap.
+        skipNextWrite.current = snap.exists();
         setData(snap.exists() ? { ...emptyDoc(), ...snap.data() } : emptyDoc());
         setLoaded(true);
       },

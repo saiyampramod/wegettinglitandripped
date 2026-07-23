@@ -21,7 +21,13 @@ each as its own section instead of one long scrolling page.
 - **Versus** — a live leaderboard shared with whoever else signs up. Updates
   in real time via Firestore, no refresh button. Tap any row to expand a
   day-by-day, category-by-category breakdown of exactly what that person hit
-  or missed this week, plus a "missed N×" summary per category.
+  or missed this week, plus a "missed N×" summary per category and a
+  head-to-head scorecard (you vs. them, per category, who's ahead by how
+  much).
+- **Inbox** — send a training partner a message or a task ("don't skip leg
+  day"). They see it live, can mark tasks done, and you can see whether
+  they've seen or completed what you sent. The nav tab and a Today card
+  badge with an unread count.
 - **Reminders** — per-person, in-app browser notifications: a repeating
   hydration nudge, and once-daily nudges for morning routine, gym, and a
   custom-trackers/milestones evening check-in. These fire only while the app
@@ -69,11 +75,23 @@ Each player is one Firestore document at `trackers/{firebaseAuthUid}`:
 }
 ```
 
+Messages and tasks are separate documents at `messages/{id}`:
+
+```
+{
+  fromUid, fromName, toUid, toName,
+  type: "message" | "task",
+  text,
+  read: false, done: false, doneAt: null,
+  createdAt,
+}
+```
+
 Without Firebase configured, the app runs entirely against a single
-`localStorage` doc on that device — no account, no sync, single user. There's
-no migration path from local-only into a real account; local mode is meant
-for trying the app out or for offline solo use, not as a staging area before
-signing up.
+`localStorage` doc on that device — no account, no sync, single user, and no
+Inbox (it needs a second person to be meaningful). There's no migration path
+from local-only into a real account; local mode is meant for trying the app
+out or for offline solo use, not as a staging area before signing up.
 
 ## Security model
 
@@ -82,9 +100,12 @@ at `trackers/{uid}`, and Firestore rules only let the signed-in owner write
 their own doc (`request.auth.uid == uid`), so nobody can edit or wipe someone
 else's data. Any signed-in user can *read* any player's doc — that's what
 makes the Versus leaderboard and the "what did they miss" breakdown work.
-See the comment in `firestore.rules` for the exact rule.
+Messages/tasks can only be created by the sender (as themselves), read by
+sender or recipient, and updated only to flip `read`/`done` — the content
+and participants are immutable once sent. See `firestore.rules` for the
+exact rules, including on redeploy after any of this changes.
 
-## Build
+## Build & deploy
 
 ```bash
 npm run build
@@ -93,3 +114,20 @@ npm run build
 Outputs a static `dist/` you can deploy anywhere (Vercel, Netlify, Firebase
 Hosting, GitHub Pages). Routing uses a hash router (`/#/gym`) specifically so
 no server-side rewrite rules are needed for static hosting.
+
+This repo is set up for **Firebase Hosting** (same project as auth/Firestore,
+one dashboard):
+
+1. Install the CLI once: `npm install -g firebase-tools`.
+2. Edit `.firebaserc` — replace `REPLACE_WITH_YOUR_FIREBASE_PROJECT_ID` with
+   your actual Firebase project ID (Project settings → General).
+3. `firebase login` (opens a browser to authenticate), then
+   `npm run deploy` — builds and deploys `dist/` to Firebase Hosting in one
+   go.
+4. Also deploy the security rules whenever `firestore.rules` changes:
+   `firebase deploy --only firestore:rules`.
+
+Running this from a headless environment (CI, a remote session with no
+browser) instead of your own machine: generate a token once on a machine
+that *does* have a browser with `firebase login:ci`, then deploy headlessly
+with `firebase deploy --only hosting --token "$FIREBASE_TOKEN"`.

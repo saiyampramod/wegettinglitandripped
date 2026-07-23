@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTrackerCtx } from "../context/TrackerContext";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { addDays, fromIso, iso, mondayOf, statusFor, WATER_GOAL_ML_DEFAULT } from "../data/constants";
@@ -16,6 +16,7 @@ export default function Versus() {
   const { playerName, uid, records, waterGoalMl, today, firebaseReady } = useTrackerCtx();
   const { players, state } = useLeaderboard();
   const [expanded, setExpanded] = useState(null);
+  const navigate = useNavigate();
 
   const wkStart = mondayOf(fromIso(today));
   const wkDates = Array.from({ length: 7 }, (_, i) => iso(addDays(wkStart, i)));
@@ -47,6 +48,9 @@ export default function Versus() {
     return counts;
   };
 
+  const hitCountOf = (p, key) =>
+    wkDates.filter((ds) => ds <= today).filter((ds) => statusOf(p, ds)[key]).length;
+
   return (
     <>
       <Link to="/" className="back-link">
@@ -76,6 +80,7 @@ export default function Versus() {
         <div className="card">
           {(() => {
             const me = { id: uid, name: playerName, records, waterGoalMl, isMe: true };
+            const myScore = scoreOf(me);
             const others = players.filter((p) => p.id !== uid);
             const board = [me, ...others].map((p) => ({ ...p, score: scoreOf(p) })).sort((a, b) => b.score - a.score);
             if (state === "loading") return <div className="empty-note">Loading rivals…</div>;
@@ -112,6 +117,44 @@ export default function Versus() {
                     </span>
                     <span className="lb-caret">{isOpen ? "▾" : "▸"}</span>
                   </button>
+
+                  {isOpen && !p.isMe && (
+                    <div className="vs-card">
+                      <div className="vs-card-head">
+                        <span className="vs-col-name">You</span>
+                        <span className="vs-vs">VS</span>
+                        <span className="vs-col-name">{p.name}</span>
+                      </div>
+                      <div className="vs-row">
+                        <span className="vs-val">{myScore}</span>
+                        <span className="vs-label">Score /28</span>
+                        <span className="vs-val">{p.score}</span>
+                      </div>
+                      {CATS.map((c) => (
+                        <div className="vs-row" key={c.key}>
+                          <span className="vs-val">{hitCountOf(me, c.key)}</span>
+                          <span className="vs-label">
+                            {c.icon} {c.label}
+                          </span>
+                          <span className="vs-val">{hitCountOf(p, c.key)}</span>
+                        </div>
+                      ))}
+                      <div className="vs-verdict">
+                        {myScore > p.score
+                          ? `You're ahead by ${myScore - p.score}`
+                          : myScore < p.score
+                          ? `${p.name} is ahead by ${p.score - myScore}`
+                          : "Tied up"}
+                      </div>
+                      <button
+                        className="btn block"
+                        style={{ marginTop: 10 }}
+                        onClick={() => navigate("/inbox", { state: { toUid: p.id } })}
+                      >
+                        ✉️ Send {p.name} something
+                      </button>
+                    </div>
+                  )}
 
                   {isOpen && (
                     <div className="lb-detail">

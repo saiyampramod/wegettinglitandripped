@@ -6,7 +6,7 @@ import { addDays, fromIso, iso, mondayOf, statusFor, WATER_GOAL_ML_DEFAULT } fro
 const DOW = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
 
 export default function Dashboard() {
-  const { records, recordFor, selected, setSelected, today, waterGoalMl, customTrackers, milestones } =
+  const { records, recordFor, selected, setSelected, today, waterGoalMl, customTrackers, milestones, unreadCount } =
     useTrackerCtx();
 
   const weekStart = mondayOf(fromIso(selected));
@@ -126,6 +126,15 @@ export default function Dashboard() {
           </div>
           <span className="quick-card-label">Versus</span>
           <span className="quick-card-value">See leaderboard</span>
+        </Link>
+
+        <Link to="/inbox" className="quick-card">
+          <div className="quick-card-top">
+            <span className="quick-card-icon">✉️</span>
+            {unreadCount > 0 && <span className="tab-badge">{unreadCount}</span>}
+          </div>
+          <span className="quick-card-label">Inbox</span>
+          <span className="quick-card-value">{unreadCount > 0 ? `${unreadCount} new` : "Messages & tasks"}</span>
         </Link>
 
         <Link to="/reminders" className="quick-card">

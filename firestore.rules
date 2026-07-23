@@ -17,6 +17,29 @@ service cloud.firestore {
                    && request.resource.data.name.size() > 0
                    && request.resource.data.name.size() < 40;
     }
+
+    // Messages & tasks sent between players. Only the sender can create one
+    // (and it must be sent as themselves), only the sender or recipient can
+    // ever read or delete it, and an update may only flip read/done — the
+    // content, sender and recipient are immutable once sent.
+    match /messages/{id} {
+      allow create: if request.auth != null
+                    && request.resource.data.fromUid == request.auth.uid
+                    && request.resource.data.toUid is string
+                    && request.resource.data.toUid != request.auth.uid
+                    && request.resource.data.type in ['message', 'task']
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() < 500;
+      allow read: if request.auth != null
+                  && (resource.data.toUid == request.auth.uid || resource.data.fromUid == request.auth.uid);
+      allow update: if request.auth != null
+                    && (resource.data.toUid == request.auth.uid || resource.data.fromUid == request.auth.uid)
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['read', 'done', 'doneAt']);
+      allow delete: if request.auth != null && resource.data.fromUid == request.auth.uid;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

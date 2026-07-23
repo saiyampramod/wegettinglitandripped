@@ -12,6 +12,7 @@ import Habits from "./pages/Habits";
 import Custom from "./pages/Custom";
 import Versus from "./pages/Versus";
 import Reminders from "./pages/Reminders";
+import Inbox from "./pages/Inbox";
 import Login from "./pages/Login";
 
 const TABS = [
@@ -22,6 +23,7 @@ const TABS = [
   { to: "/habits", label: "Habits" },
   { to: "/custom", label: "Custom" },
   { to: "/versus", label: "Versus" },
+  { to: "/inbox", label: "Inbox" },
   { to: "/reminders", label: "Reminders" },
 ];
 
@@ -45,7 +47,7 @@ function useStreak() {
 
 function Shell() {
   const streak = useStreak();
-  const { saveState, firebaseReady, reminders, today, recordFor, waterGoalMl, customTrackers, milestones } =
+  const { saveState, firebaseReady, reminders, today, recordFor, waterGoalMl, customTrackers, milestones, unreadCount } =
     useTrackerCtx();
 
   useReminderEngine({ reminders, today, recordFor, waterGoalMl, customTrackers, milestones });
@@ -72,6 +74,7 @@ function Shell() {
               className={({ isActive }) => "tab-pill" + (isActive ? " active" : "")}
             >
               {t.label}
+              {t.to === "/inbox" && unreadCount > 0 && <span className="tab-badge">{unreadCount}</span>}
             </NavLink>
           ))}
         </nav>
@@ -86,6 +89,7 @@ function Shell() {
           <Route path="/habits" element={<Habits />} />
           <Route path="/custom" element={<Custom />} />
           <Route path="/versus" element={<Versus />} />
+          <Route path="/inbox" element={<Inbox />} />
           <Route path="/reminders" element={<Reminders />} />
         </Routes>
 
@@ -111,7 +115,7 @@ function AuthGate({ children }) {
   if (authLoading) {
     return (
       <div className="auth-screen">
-        <div className="brand-eyebrow">Mindful Muscle</div>
+        <div className="brand-eyebrow">Ripped &amp; Lit</div>
       </div>
     );
   }
