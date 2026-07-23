@@ -330,6 +330,10 @@ a {
   background: var(--gold-wash);
   color: var(--gold);
 }
+.chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 input.field,
 textarea.field {

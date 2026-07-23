@@ -127,6 +127,14 @@ export default function Dashboard() {
           <span className="quick-card-label">Versus</span>
           <span className="quick-card-value">See leaderboard</span>
         </Link>
+
+        <Link to="/reminders" className="quick-card">
+          <div className="quick-card-top">
+            <span className="quick-card-icon">🔔</span>
+          </div>
+          <span className="quick-card-label">Reminders</span>
+          <span className="quick-card-value">Set up nudges</span>
+        </Link>
       </div>
     </>
   );

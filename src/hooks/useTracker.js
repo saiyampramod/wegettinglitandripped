@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { db, firebaseReady } from "../firebase";
-import { emptyRecord, iso, slug, WATER_GOAL_ML_DEFAULT } from "../data/constants";
+import { emptyRecord, iso, REMINDER_DEFAULTS, slug, WATER_GOAL_ML_DEFAULT } from "../data/constants";
 
 const NAME_KEY = "mm-profile-name";
 const GUEST_CACHE_KEY = "mm-guest-cache";
@@ -12,6 +12,7 @@ const emptyDoc = () => ({
   customTrackers: [],
   milestones: [],
   waterGoalMl: WATER_GOAL_ML_DEFAULT,
+  reminders: REMINDER_DEFAULTS,
 });
 
 function readCache(key) {
@@ -150,6 +151,17 @@ export function useTracker() {
     setData((prev) => ({ ...prev, milestones: prev.milestones.filter((m) => m.id !== id) }));
   }, []);
 
+  const updateReminders = useCallback((category, patch) => {
+    setData((prev) => ({
+      ...prev,
+      reminders: {
+        ...REMINDER_DEFAULTS,
+        ...prev.reminders,
+        [category]: { ...REMINDER_DEFAULTS[category], ...prev.reminders?.[category], ...patch },
+      },
+    }));
+  }, []);
+
   return {
     loaded,
     saveState,
@@ -169,6 +181,8 @@ export function useTracker() {
     addMilestone,
     updateMilestone,
     removeMilestone,
+    reminders: { ...REMINDER_DEFAULTS, ...data.reminders },
+    updateReminders,
     today: iso(new Date()),
   };
 }

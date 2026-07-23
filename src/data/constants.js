@@ -156,6 +156,15 @@ export const HABITS = [
 export const WATER_GOAL_ML_DEFAULT = 3200; // 3.2 L
 export const WATER_QUICK_ADDS = [250, 500, 750];
 
+/* ─────────────────────────  REMINDERS  ───────────────────────── */
+
+export const REMINDER_DEFAULTS = {
+  water: { enabled: false, intervalMin: 60 },
+  morning: { enabled: false, time: "09:00" },
+  gym: { enabled: false, time: "18:00" },
+  custom: { enabled: false, time: "20:00" },
+};
+
 /* ─────────────────────────  DATE HELPERS  ───────────────────────── */
 
 export const iso = (d) => {

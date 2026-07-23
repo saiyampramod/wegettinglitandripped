@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
 import { TrackerProvider, useTrackerCtx } from "./context/TrackerContext";
 import { addDays, fromIso, iso, statusFor } from "./data/constants";
+import { useReminderEngine } from "./hooks/useReminderEngine";
 import Dashboard from "./pages/Dashboard";
 import Morning from "./pages/Morning";
 import Gym from "./pages/Gym";
@@ -9,6 +10,7 @@ import Water from "./pages/Water";
 import Habits from "./pages/Habits";
 import Custom from "./pages/Custom";
 import Versus from "./pages/Versus";
+import Reminders from "./pages/Reminders";
 
 const TABS = [
   { to: "/", label: "Today", end: true },
@@ -18,6 +20,7 @@ const TABS = [
   { to: "/habits", label: "Habits" },
   { to: "/custom", label: "Custom" },
   { to: "/versus", label: "Versus" },
+  { to: "/reminders", label: "Reminders" },
 ];
 
 function useStreak() {
@@ -40,7 +43,10 @@ function useStreak() {
 
 function Shell() {
   const streak = useStreak();
-  const { saveState, playerName, firebaseReady } = useTrackerCtx();
+  const { saveState, playerName, firebaseReady, reminders, today, recordFor, waterGoalMl, customTrackers, milestones } =
+    useTrackerCtx();
+
+  useReminderEngine({ reminders, today, recordFor, waterGoalMl, customTrackers, milestones });
 
   return (
     <>
@@ -78,6 +84,7 @@ function Shell() {
           <Route path="/habits" element={<Habits />} />
           <Route path="/custom" element={<Custom />} />
           <Route path="/versus" element={<Versus />} />
+          <Route path="/reminders" element={<Reminders />} />
         </Routes>
 
         <div className={"footer-note" + (saveState === "error" ? " error" : "")}>

@@ -20,6 +20,12 @@ each as its own section instead of one long scrolling page.
   target date.
 - **Versus** — a live leaderboard shared with whoever else opens the app and
   joins with a name. Updates in real time via Firestore, no refresh button.
+- **Reminders** — per-person, in-app browser notifications: a repeating
+  hydration nudge, and once-daily nudges for morning routine, gym, and a
+  custom-trackers/milestones evening check-in. These fire only while the app
+  is open in a tab (no service worker or push server involved), so they're
+  best paired with keeping a tab open, or as a "did I actually do this today"
+  check when you open the app in the evening.
 
 ## Getting started
 
