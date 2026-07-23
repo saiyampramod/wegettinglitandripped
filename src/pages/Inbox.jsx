@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTrackerCtx } from "../context/TrackerContext";
 import { useLeaderboard } from "../hooks/useLeaderboard";
@@ -26,10 +26,29 @@ export default function Inbox() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  // The recipient list loads live from Firestore, so on a direct visit to
+  // this page (not via Versus's "send them something", which hands the uid
+  // over directly) `rivals` is still empty on first render — the initial
+  // toUid above silently ends up "". Once rivals actually arrives, fill in
+  // a default, but never override an explicit choice (preset or the user's
+  // own pick in the dropdown).
+  useEffect(() => {
+    if (toUid || rivals.length === 0) return;
+    setToUid(rivals[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rivals.length]);
+
   const send = async () => {
-    if (!text.trim() || !toUid) return;
+    if (!text.trim()) return;
+    if (!toUid) {
+      setError("No recipient selected — pick someone from the \"To\" dropdown first.");
+      return;
+    }
     const rival = rivals.find((r) => r.id === toUid);
-    if (!rival) return;
+    if (!rival) {
+      setError("That recipient isn't available anymore — pick someone else from the \"To\" dropdown.");
+      return;
+    }
     if (!uid) {
       setError("Not signed in — if you're on the Home Screen icon, open it and sign in there directly first.");
       return;
