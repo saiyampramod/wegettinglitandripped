@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { db, firebaseReady } from "../firebase";
-import { emptyRecord, iso, REMINDER_DEFAULTS, WATER_GOAL_ML_DEFAULT } from "../data/constants";
+import { emptyRecord, iso, MORNING, REMINDER_DEFAULTS, WATER_GOAL_ML_DEFAULT } from "../data/constants";
 
 const LOCAL_CACHE_KEY = "mm-local-cache";
 const cacheKeyFor = (uid) => (uid ? `mm-cache-${uid}` : LOCAL_CACHE_KEY);
@@ -67,7 +67,12 @@ export function useTracker(user) {
         // is what creates it (with `name` set) so they show up in Versus
         // right away instead of only after their first checkbox tap.
         skipNextWrite.current = snap.exists();
-        setData(snap.exists() ? { ...emptyDoc(), ...snap.data() } : emptyDoc());
+        // A brand-new doc gets onboarded:false explicitly, so the one-time
+        // choice screen shows exactly once. Existing docs never get that key
+        // injected by the merge below, so nobody already using the app gets
+        // retroactively prompted — `onboarded` stays undefined for them,
+        // which OnboardingGate treats as "already past this."
+        setData(snap.exists() ? { ...emptyDoc(), ...snap.data() } : { ...emptyDoc(), onboarded: false });
         setLoaded(true);
       },
       () => setLoaded(true)
@@ -173,6 +178,21 @@ export function useTracker(user) {
     });
   }, []);
 
+  const completeOnboarding = useCallback((choice) => {
+    setData((prev) => {
+      if (choice !== "blank") return { ...prev, onboarded: true };
+      const blankSplit = {};
+      [1, 2, 3, 5, 6].forEach((n) => {
+        blankSplit[n] = { exercises: [] };
+      });
+      const blankMorning = {};
+      MORNING.forEach((phase) => {
+        blankMorning[phase.id] = { items: [] };
+      });
+      return { ...prev, onboarded: true, habitsList: [], splitOverrides: blankSplit, morningOverrides: blankMorning };
+    });
+  }, []);
+
   const updateReminders = useCallback((category, patch) => {
     setData((prev) => ({
       ...prev,
@@ -213,6 +233,8 @@ export function useTracker(user) {
     morningOverrides: data.morningOverrides || {},
     setPhaseItems,
     resetMorningPhase,
+    needsOnboarding: data.onboarded === false,
+    completeOnboarding,
     today: iso(new Date()),
   };
 }

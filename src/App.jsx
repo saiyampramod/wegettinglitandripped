@@ -14,6 +14,7 @@ import Versus from "./pages/Versus";
 import Reminders from "./pages/Reminders";
 import Inbox from "./pages/Inbox";
 import Login from "./pages/Login";
+import Onboarding from "./pages/Onboarding";
 
 const TABS = [
   { to: "/", label: "Today", end: true },
@@ -128,12 +129,20 @@ function AuthGate({ children }) {
   return children;
 }
 
+function OnboardingGate({ children }) {
+  const { loaded, needsOnboarding } = useTrackerCtx();
+  if (loaded && needsOnboarding) return <Onboarding />;
+  return children;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <AuthGate>
         <TrackerProvider>
-          <Shell />
+          <OnboardingGate>
+            <Shell />
+          </OnboardingGate>
         </TrackerProvider>
       </AuthGate>
     </AuthProvider>
