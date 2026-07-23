@@ -24,15 +24,23 @@ export default function Inbox() {
   const [type, setType] = useState("message");
   const [text, setText] = useState(preset.text || "");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   const send = async () => {
     if (!text.trim() || !toUid) return;
     const rival = rivals.find((r) => r.id === toUid);
     if (!rival) return;
+    if (!uid) {
+      setError("Not signed in — if you're on the Home Screen icon, open it and sign in there directly first.");
+      return;
+    }
+    setError("");
     setBusy(true);
     try {
       await sendItem({ fromUid: uid, fromName: playerName, toUid, toName: rival.name, type, text });
       setText("");
+    } catch (err) {
+      setError(`Couldn't send (${err.code || err.message || "unknown error"}).`);
     } finally {
       setBusy(false);
     }
@@ -85,6 +93,7 @@ export default function Inbox() {
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
+            {error && <div className="auth-error">{error}</div>}
             <button className="btn solid block" onClick={send} disabled={busy || !text.trim()}>
               {busy ? "Sending…" : `Send ${type === "task" ? "task" : "message"}`}
             </button>
