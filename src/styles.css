@@ -100,7 +100,7 @@ a {
 .shell {
   max-width: var(--content-width);
   margin: 0 auto;
-  padding: 16px 16px 90px;
+  padding: 16px 16px calc(90px + env(safe-area-inset-bottom));
   min-height: 100%;
 }
 
@@ -112,7 +112,10 @@ a {
   background: rgba(12, 11, 9, 0.92);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border-soft);
-  padding: 14px 16px 0;
+  /* env(safe-area-inset-top) is the notch/status-bar height — without it,
+     standalone/home-screen mode draws the header under the status bar
+     instead of below it, since viewport-fit=cover lets content go edge-to-edge */
+  padding: calc(14px + env(safe-area-inset-top)) 16px 0;
 }
 .app-header-inner {
   max-width: var(--content-width);
@@ -803,7 +806,7 @@ textarea.field:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 16px;
+  padding: calc(24px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
 }
 .auth-card {
   width: 100%;
