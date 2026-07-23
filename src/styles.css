@@ -33,12 +33,26 @@ body,
   height: 100%;
 }
 
+html {
+  /* stops the pull-to-refresh / rubber-band bounce so scrolling feels like
+     an app's own scroll view instead of a browser page — pinch-zoom is
+     untouched, this only affects overscroll past the content edges */
+  overscroll-behavior-y: none;
+}
+
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
   font-family: "Inter", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
+}
+
+button,
+a {
+  /* removes the ~300ms tap delay and double-tap-to-zoom on controls
+     specifically, without touching pinch-zoom on the page itself */
+  touch-action: manipulation;
 }
 
 button,
@@ -366,7 +380,9 @@ textarea.field {
   border-radius: var(--radius-md);
   color: var(--text);
   padding: 10px 12px;
-  font-size: 14px;
+  /* iOS Safari auto-zooms the page on focus for any input under 16px —
+     16px here is what stops that "autozoom" jump, not a design choice */
+  font-size: 16px;
   outline: none;
 }
 input.field:focus,
