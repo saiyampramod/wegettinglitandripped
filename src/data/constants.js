@@ -140,6 +140,13 @@ export const MORNING = [
 
 export const ALL_MORNING_IDS = MORNING.flatMap((p) => p.items.map((i) => i.id));
 
+/* the morning routine with any per-player phase overrides applied */
+export const morningFor = (morningOverrides) =>
+  MORNING.map((phase) => {
+    const override = morningOverrides && morningOverrides[phase.id];
+    return override && Array.isArray(override.items) ? { ...phase, items: override.items } : phase;
+  });
+
 /* ─────────────────────────  PERFORMANCE HABITS  ───────────────────────── */
 
 export const HABITS = [
@@ -214,7 +221,8 @@ export const splitFor = (n, splitOverrides) => {
 export const statusFor = (r, profile = {}) => {
   if (!r) return { morning: false, gym: false, habits: false, water: false };
   const habitsList = profile.habitsList || HABITS;
-  const morningDone = ALL_MORNING_IDS.every((id) => r.morning && r.morning[id]);
+  const morningIds = morningFor(profile.morningOverrides).flatMap((p) => p.items.map((i) => i.id));
+  const morningDone = morningIds.length > 0 && morningIds.every((id) => r.morning && r.morning[id]);
   const day = splitFor(r.splitDay || 4, profile.splitOverrides);
   const isRest = day.exercises.length === 0;
   const gymDone = isRest

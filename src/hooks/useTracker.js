@@ -14,6 +14,7 @@ const emptyDoc = () => ({
   reminders: REMINDER_DEFAULTS,
   habitsList: null, // null → use the default HABITS list
   splitOverrides: {}, // {dayNum: {exercises: [...]}} — per-day workout customization
+  morningOverrides: {}, // {phaseId: {items: [...]}} — per-phase morning routine customization
 });
 
 function readCache(key) {
@@ -157,6 +158,21 @@ export function useTracker(user) {
     });
   }, []);
 
+  const setPhaseItems = useCallback((phaseId, items) => {
+    setData((prev) => ({
+      ...prev,
+      morningOverrides: { ...(prev.morningOverrides || {}), [phaseId]: { items } },
+    }));
+  }, []);
+
+  const resetMorningPhase = useCallback((phaseId) => {
+    setData((prev) => {
+      const next = { ...(prev.morningOverrides || {}) };
+      delete next[phaseId];
+      return { ...prev, morningOverrides: next };
+    });
+  }, []);
+
   const updateReminders = useCallback((category, patch) => {
     setData((prev) => ({
       ...prev,
@@ -194,6 +210,9 @@ export function useTracker(user) {
     splitOverrides: data.splitOverrides || {},
     setSplitDayExercises,
     resetSplitDay,
+    morningOverrides: data.morningOverrides || {},
+    setPhaseItems,
+    resetMorningPhase,
     today: iso(new Date()),
   };
 }

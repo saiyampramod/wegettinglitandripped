@@ -8,10 +8,10 @@ const DOW = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
 export default function Dashboard() {
   const {
     records, recordFor, selected, setSelected, today, waterGoalMl,
-    habitsList, splitOverrides, customTrackers, milestones, unreadCount,
+    habitsList, splitOverrides, morningOverrides, customTrackers, milestones, unreadCount,
   } = useTrackerCtx();
 
-  const profile = { waterGoalMl, habitsList, splitOverrides };
+  const profile = { waterGoalMl, habitsList, splitOverrides, morningOverrides };
   const weekStart = mondayOf(fromIso(selected));
   const week = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const rec = recordFor(selected);

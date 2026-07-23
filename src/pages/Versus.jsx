@@ -13,7 +13,8 @@ const CATS = [
 const DOW = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 export default function Versus() {
-  const { playerName, uid, records, waterGoalMl, habitsList, splitOverrides, today, firebaseReady } = useTrackerCtx();
+  const { playerName, uid, records, waterGoalMl, habitsList, splitOverrides, morningOverrides, today, firebaseReady } =
+    useTrackerCtx();
   const { players, state } = useLeaderboard();
   const [expanded, setExpanded] = useState(null);
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ export default function Versus() {
       waterGoalMl: p.waterGoalMl || WATER_GOAL_ML_DEFAULT,
       habitsList: p.habitsList || undefined,
       splitOverrides: p.splitOverrides || undefined,
+      morningOverrides: p.morningOverrides || undefined,
     });
 
   const scoreOf = (p) =>
@@ -85,7 +87,16 @@ export default function Versus() {
       ) : (
         <div className="card">
           {(() => {
-            const me = { id: uid, name: playerName, records, waterGoalMl, habitsList, splitOverrides, isMe: true };
+            const me = {
+              id: uid,
+              name: playerName,
+              records,
+              waterGoalMl,
+              habitsList,
+              splitOverrides,
+              morningOverrides,
+              isMe: true,
+            };
             const myScore = scoreOf(me);
             const others = players.filter((p) => p.id !== uid);
             const board = [me, ...others].map((p) => ({ ...p, score: scoreOf(p) })).sort((a, b) => b.score - a.score);
