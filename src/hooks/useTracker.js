@@ -180,7 +180,11 @@ export function useTracker(user) {
 
   const completeOnboarding = useCallback((choice) => {
     setData((prev) => {
-      if (choice !== "blank") return { ...prev, onboarded: true };
+      if (choice !== "blank") {
+        // The template's Pelvic Floor phase is a personal addition, not part
+        // of the general default — new joinees get everything else, minus that.
+        return { ...prev, onboarded: true, morningOverrides: { pelvic: { items: [] } } };
+      }
       const blankSplit = {};
       [1, 2, 3, 5, 6].forEach((n) => {
         blankSplit[n] = { exercises: [] };

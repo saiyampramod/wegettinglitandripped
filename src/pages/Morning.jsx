@@ -13,6 +13,10 @@ export default function Morning() {
   const [editing, setEditing] = useState(false);
 
   const phases = morningFor(morningOverrides);
+  // An empty phase (e.g. a phase someone else's template includes but you
+  // emptied out, or never added to) just clutters the checklist — hide it
+  // outside edit mode, where it's still there to add to if you want it back.
+  const visiblePhases = phases.filter((p) => editing || p.items.length > 0);
   const allIds = phases.flatMap((p) => p.items.map((i) => i.id));
   const count = allIds.filter((id) => rec.morning[id]).length;
   const pct = allIds.length ? Math.round((count / allIds.length) * 100) : 0;
@@ -55,7 +59,7 @@ export default function Morning() {
           </div>
         </div>
 
-        {phases.map((phase) => {
+        {visiblePhases.map((phase) => {
           const done = phase.items.filter((i) => rec.morning[i.id]).length;
           const open = editing || !!openPhases[phase.id];
           const customized = !!(morningOverrides && morningOverrides[phase.id]);
