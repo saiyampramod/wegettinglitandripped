@@ -376,7 +376,8 @@ a {
 }
 
 input.field,
-textarea.field {
+textarea.field,
+select.field {
   width: 100%;
   background: var(--bg);
   border: 1px solid rgba(242, 237, 227, 0.2);
@@ -389,8 +390,24 @@ textarea.field {
   outline: none;
 }
 input.field:focus,
-textarea.field:focus {
+textarea.field:focus,
+select.field:focus {
   border-color: var(--gold);
+}
+select.field {
+  /* native selects otherwise ignore background/color on iOS and render as
+     a plain white system control — appearance:none plus a hand-drawn arrow
+     is what actually gets the dark theme to stick on the closed control */
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23D4A843' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 34px;
+}
+select.field option {
+  background: var(--surface);
+  color: var(--text);
 }
 .field-label {
   display: block;

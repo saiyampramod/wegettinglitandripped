@@ -19,9 +19,11 @@ service cloud.firestore {
     }
 
     // Messages & tasks sent between players. Only the sender can create one
-    // (and it must be sent as themselves), only the sender or recipient can
-    // ever read or delete it, and an update may only flip read/done — the
-    // content, sender and recipient are immutable once sent.
+    // (and it must be sent as themselves); only the sender or recipient can
+    // ever read, delete, or update it, and an update may only flip
+    // read/done — the content, sender and recipient are immutable once sent.
+    // Either side deleting is what lets "Dismiss" work for a recipient, and
+    // what lets the 48h auto-cleanup run from whichever side's app is open.
     match /messages/{id} {
       allow create: if request.auth != null
                     && request.resource.data.fromUid == request.auth.uid
@@ -37,7 +39,8 @@ service cloud.firestore {
                     && (resource.data.toUid == request.auth.uid || resource.data.fromUid == request.auth.uid)
                     && request.resource.data.diff(resource.data).affectedKeys()
                        .hasOnly(['read', 'done', 'doneAt']);
-      allow delete: if request.auth != null && resource.data.fromUid == request.auth.uid;
+      allow delete: if request.auth != null
+                    && (resource.data.toUid == request.auth.uid || resource.data.fromUid == request.auth.uid);
     }
 
     match /{document=**} {
