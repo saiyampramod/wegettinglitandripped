@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTrackerCtx } from "../context/TrackerContext";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 
-function fmtWhen(ts) {
+function fmtTime(ts) {
   const ms = ts?.toMillis?.();
-  if (!ms) return "sending…";
+  if (!ms) return "";
   const d = new Date(ms);
   const sameDay = d.toDateString() === new Date().toDateString();
   return sameDay
@@ -16,37 +16,50 @@ function fmtWhen(ts) {
 export default function Inbox() {
   const location = useLocation();
   const preset = location.state || {};
-  const { uid, playerName, received, sent, unreadCount, sendItem, markRead, markDone, remove } = useTrackerCtx();
+  const { uid, playerName, received, sent, sendItem, markRead, markDone, remove } = useTrackerCtx();
   const { players } = useLeaderboard();
-
   const rivals = players.filter((p) => p.id !== uid);
-  const [toUid, setToUid] = useState(preset.toUid || (rivals[0] && rivals[0].id) || "");
-  const [type, setType] = useState("message");
+
+  const [activeUid, setActiveUid] = useState(preset.toUid || null);
   const [text, setText] = useState(preset.text || "");
+  const [asTask, setAsTask] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const scrollRef = useRef(null);
 
-  // The recipient list loads live from Firestore, so on a direct visit to
-  // this page (not via Versus's "send them something", which hands the uid
-  // over directly) `rivals` is still empty on first render — the initial
-  // toUid above silently ends up "". Once rivals actually arrives, fill in
-  // a default, but never override an explicit choice (preset or the user's
-  // own pick in the dropdown).
+  const threadWith = (otherUid) =>
+    [...received.filter((m) => m.fromUid === otherUid), ...sent.filter((m) => m.toUid === otherUid)].sort(
+      (a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0)
+    );
+
+  const conversations = rivals
+    .map((r) => {
+      const msgs = threadWith(r.id);
+      const last = msgs[msgs.length - 1];
+      const unread = received.filter((m) => m.fromUid === r.id && !m.read).length;
+      return { rival: r, msgs, last, unread };
+    })
+    .sort((a, b) => (b.last?.createdAt?.toMillis?.() || 0) - (a.last?.createdAt?.toMillis?.() || 0));
+
+  const activeRival = rivals.find((r) => r.id === activeUid);
+  const activeMsgs = activeUid ? threadWith(activeUid) : [];
+
+  // Opening a thread marks whatever's unread in it as read.
   useEffect(() => {
-    if (toUid || rivals.length === 0) return;
-    setToUid(rivals[0].id);
+    if (!activeUid) return;
+    received.filter((m) => m.fromUid === activeUid && !m.read).forEach((m) => markRead(m.id));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rivals.length]);
+  }, [activeUid, received]);
+
+  // Always show the latest message, like a real texting app.
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [activeMsgs.length, activeUid]);
 
   const send = async () => {
     if (!text.trim()) return;
-    if (!toUid) {
-      setError("No recipient selected — pick someone from the \"To\" dropdown first.");
-      return;
-    }
-    const rival = rivals.find((r) => r.id === toUid);
-    if (!rival) {
-      setError("That recipient isn't available anymore — pick someone else from the \"To\" dropdown.");
+    if (!activeUid || !activeRival) {
+      setError("Pick someone to message first.");
       return;
     }
     if (!uid) {
@@ -56,7 +69,14 @@ export default function Inbox() {
     setError("");
     setBusy(true);
     try {
-      await sendItem({ fromUid: uid, fromName: playerName, toUid, toName: rival.name, type, text });
+      await sendItem({
+        fromUid: uid,
+        fromName: playerName,
+        toUid: activeUid,
+        toName: activeRival.name,
+        type: asTask ? "task" : "message",
+        text,
+      });
       setText("");
     } catch (err) {
       setError(`Couldn't send (${err.code || err.message || "unknown error"}).`);
@@ -65,133 +85,104 @@ export default function Inbox() {
     }
   };
 
+  if (!activeUid) {
+    return (
+      <>
+        <Link to="/" className="back-link">
+          ← Today
+        </Link>
+        <div className="page-title-row">
+          <h2 className="disp page-title">Inbox</h2>
+        </div>
+        {rivals.length === 0 ? (
+          <div className="card">
+            <div className="empty-note">
+              Nobody else has joined yet. Once a training partner creates an account, they'll show up here to message.
+            </div>
+          </div>
+        ) : (
+          <div className="card">
+            {conversations.map(({ rival, last, unread }) => (
+              <button key={rival.id} className="convo-row" onClick={() => setActiveUid(rival.id)}>
+                <span className="convo-avatar">{(rival.name || "?")[0]?.toUpperCase()}</span>
+                <span className="convo-body">
+                  <span className="convo-top">
+                    <span className="convo-name">{rival.name}</span>
+                    {last && <span className="convo-time">{fmtTime(last.createdAt)}</span>}
+                  </span>
+                  <span className="convo-preview">
+                    {last ? `${last.fromUid === uid ? "You: " : ""}${last.text}` : "No messages yet — say hi"}
+                  </span>
+                </span>
+                {unread > 0 && <span className="tab-badge">{unread}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <>
-      <Link to="/" className="back-link">
-        ← Today
-      </Link>
+      <button onClick={() => setActiveUid(null)} className="back-link" style={{ background: "none", border: "none" }}>
+        ← Inbox
+      </button>
       <div className="page-title-row">
-        <h2 className="disp page-title">Inbox</h2>
-        {unreadCount > 0 && <span className="msg-badge unread">{unreadCount} new</span>}
-      </div>
-      <div className="card-sub" style={{ marginBottom: 14 }}>
-        Send a training partner a message, or a task to hold them to.
+        <h2 className="disp page-title">{activeRival ? activeRival.name : "…"}</h2>
       </div>
 
-      {rivals.length === 0 ? (
-        <div className="card">
-          <div className="empty-note">
-            Nobody else has joined yet. Once a training partner creates an account, they'll show up here to message.
-          </div>
-        </div>
-      ) : (
-        <div className="card">
-          <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div>
-              <span className="field-label">To</span>
-              <select className="field" value={toUid} onChange={(e) => setToUid(e.target.value)}>
-                {rivals.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="chip-row">
-              <button className={"chip" + (type === "message" ? " active" : "")} onClick={() => setType("message")}>
-                💬 Message
-              </button>
-              <button className={"chip" + (type === "task" ? " active" : "")} onClick={() => setType("task")}>
-                ✅ Task
-              </button>
-            </div>
-            <textarea
-              className="field"
-              rows={3}
-              placeholder={type === "task" ? "e.g. Don't skip leg day tomorrow" : "e.g. Nice work today 💪"}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
-            {error && <div className="auth-error">{error}</div>}
-            <button className="btn solid block" onClick={send} disabled={busy || !text.trim()}>
-              {busy ? "Sending…" : `Send ${type === "task" ? "task" : "message"}`}
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="page-title-row" style={{ marginTop: 26, marginBottom: 8 }}>
-        <span className="disp" style={{ fontSize: 13, letterSpacing: "0.08em", color: "var(--text-dim)" }}>
-          Received
-        </span>
-      </div>
-      {received.length === 0 ? (
-        <div className="card">
-          <div className="empty-note">Nothing yet.</div>
-        </div>
-      ) : (
-        received.map((m) => (
-          <div key={m.id} className="card">
-            <div className="card-body msg-item">
-              <div className="msg-meta">
-                <span className={"msg-badge" + (m.type === "task" ? " task" : "")}>
-                  {m.type === "task" ? "TASK" : "MSG"}
-                </span>
-                <span className="item-detail" style={{ margin: 0 }}>
-                  from {m.fromName} · {fmtWhen(m.createdAt)}
-                </span>
-                {!m.read && <span className="msg-dot" />}
-              </div>
-              <p className={"msg-text" + (m.type === "task" && m.done ? " done" : "")}>{m.text}</p>
-              <div className="chip-row">
-                {m.type === "task" && (
+      <div className="chat-thread" ref={scrollRef}>
+        {activeMsgs.length === 0 && <div className="empty-note">No messages yet — say hi 👋</div>}
+        {activeMsgs.map((m) => {
+          const mine = m.fromUid === uid;
+          return (
+            <div key={m.id} className={"bubble-row" + (mine ? " mine" : "")}>
+              <div className={"bubble" + (mine ? " mine" : " theirs") + (m.type === "task" ? " task" : "")}>
+                <button className="bubble-remove" onClick={() => remove(m.id)} aria-label="Remove">
+                  ✕
+                </button>
+                {m.type === "task" && <span className="bubble-task-label">✅ Task</span>}
+                <span className="bubble-text">{m.text}</span>
+                {m.type === "task" && !mine && (
                   <button className={"chip" + (m.done ? " active" : "")} onClick={() => markDone(m.id, !m.done)}>
                     {m.done ? "✓ Done" : "Mark done"}
                   </button>
                 )}
-                {!m.read && (
-                  <button className="chip" onClick={() => markRead(m.id)}>
-                    Mark read
-                  </button>
-                )}
-                <button className="chip" onClick={() => remove(m.id)}>
-                  Dismiss
-                </button>
+                <span className="bubble-meta">
+                  {fmtTime(m.createdAt)}
+                  {m.type === "task" && mine ? (m.done ? " · done" : m.read ? " · seen" : "") : ""}
+                </span>
               </div>
             </div>
-          </div>
-        ))
-      )}
-
-      <div className="page-title-row" style={{ marginTop: 26, marginBottom: 8 }}>
-        <span className="disp" style={{ fontSize: 13, letterSpacing: "0.08em", color: "var(--text-dim)" }}>
-          Sent
-        </span>
+          );
+        })}
       </div>
-      {sent.length === 0 ? (
-        <div className="card">
-          <div className="empty-note">Nothing sent yet.</div>
+
+      {error && (
+        <div className="auth-error" style={{ margin: "8px 0" }}>
+          {error}
         </div>
-      ) : (
-        sent.map((m) => (
-          <div key={m.id} className="card">
-            <div className="card-body msg-item">
-              <div className="msg-meta">
-                <span className={"msg-badge" + (m.type === "task" ? " task" : "")}>
-                  {m.type === "task" ? "TASK" : "MSG"}
-                </span>
-                <span className="item-detail" style={{ margin: 0 }}>
-                  to {m.toName} · {fmtWhen(m.createdAt)}
-                </span>
-              </div>
-              <p className={"msg-text" + (m.type === "task" && m.done ? " done" : "")}>{m.text}</p>
-              <span className="item-detail" style={{ color: m.read ? "var(--gold)" : "var(--text-faint)" }}>
-                {m.type === "task" ? (m.done ? "✓ they marked it done" : m.read ? "seen" : "not seen yet") : m.read ? "read" : "unread"}
-              </span>
-            </div>
-          </div>
-        ))
       )}
+      <div className="chat-compose">
+        <button
+          className={"chip" + (asTask ? " active" : "")}
+          onClick={() => setAsTask((v) => !v)}
+          title="Send as a task instead of a message"
+        >
+          ✅
+        </button>
+        <input
+          className="field"
+          placeholder={asTask ? "Task for them…" : "Message…"}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && send()}
+        />
+        <button className="btn solid" onClick={send} disabled={busy || !text.trim()}>
+          {busy ? "…" : "Send"}
+        </button>
+      </div>
     </>
   );
 }
