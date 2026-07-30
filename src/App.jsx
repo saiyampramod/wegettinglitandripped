@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { TrackerProvider, useTrackerCtx } from "./context/TrackerContext";
-import { addDays, fromIso, iso, statusFor } from "./data/constants";
+import { streakFor } from "./data/constants";
 import { useInboxNotifications, useReminderEngine } from "./hooks/useReminderEngine";
 import Dashboard from "./pages/Dashboard";
 import Morning from "./pages/Morning";
@@ -32,18 +32,7 @@ function useStreak() {
   const { records, waterGoalMl, habitsList, splitOverrides, morningList, today } = useTrackerCtx();
   return useMemo(() => {
     const profile = { waterGoalMl, habitsList, splitOverrides, morningList };
-    let s = 0;
-    let cursor = fromIso(today);
-    const t = statusFor(records[today], profile);
-    if (!(t.morning && t.gym)) cursor = addDays(cursor, -1);
-    for (let i = 0; i < 365; i++) {
-      const st = statusFor(records[iso(cursor)], profile);
-      if (st.morning && st.gym) {
-        s++;
-        cursor = addDays(cursor, -1);
-      } else break;
-    }
-    return s;
+    return streakFor(records, profile, today);
   }, [records, waterGoalMl, habitsList, splitOverrides, morningList, today]);
 }
 

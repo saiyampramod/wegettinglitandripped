@@ -240,3 +240,52 @@ export const statusFor = (r, profile = {}) => {
   const waterDone = waterMl >= (profile.waterGoalMl || WATER_GOAL_ML_DEFAULT);
   return { morning: morningDone, gym: gymDone, habits: habitsDone, water: waterDone, isRest };
 };
+
+/* Points for a single day, counted per individual task instead of only
+   paying out once a whole category is fully cleared — every morning item,
+   every exercise, every habit is worth 1pt on its own, and water pays out
+   in quarters of the daily goal so it stays on the same scale as the rest. */
+export const WATER_POINT_STEPS = 4;
+export const pointsFor = (r, profile = {}) => {
+  const habitsList = profile.habitsList || HABITS;
+  const morningItems = morningFor(profile.morningList).flatMap((p) => p.items);
+  const day = splitFor((r && r.splitDay) || 4, profile.splitOverrides);
+  const isRest = day.exercises.length === 0;
+  const gymMax = isRest ? 1 : day.exercises.length;
+  const habitsMax = habitsList.length;
+  const morningMax = morningItems.length;
+  if (!r) {
+    return {
+      morning: 0, gym: 0, habits: 0, water: 0, total: 0,
+      morningMax, gymMax, habitsMax, waterMax: WATER_POINT_STEPS,
+      max: morningMax + gymMax + habitsMax + WATER_POINT_STEPS, isRest,
+    };
+  }
+  const morning = morningItems.filter((i) => r.morning && r.morning[i.id]).length;
+  const gym = isRest ? (r.gymManualDone ? 1 : 0) : day.exercises.filter((e) => r.gym && r.gym[e.id]).length;
+  const habits = habitsList.filter((h) => r.habits && r.habits[h.id]).length;
+  const waterMl = (r.water && r.water.ml) || 0;
+  const goal = profile.waterGoalMl || WATER_GOAL_ML_DEFAULT;
+  const water = Math.min(WATER_POINT_STEPS, Math.floor((waterMl / goal) * WATER_POINT_STEPS));
+  const total = morning + gym + habits + water;
+  const max = morningMax + gymMax + habitsMax + WATER_POINT_STEPS;
+  return { morning, gym, habits, water, total, morningMax, gymMax, habitsMax, waterMax: WATER_POINT_STEPS, max, isRest };
+};
+
+/* current streak (consecutive days with both morning + gym fully cleared) —
+   shared by the dashboard header and the Versus leaderboard so "your streak"
+   means the same thing everywhere it's shown */
+export const streakFor = (records, profile, today) => {
+  let s = 0;
+  let cursor = fromIso(today);
+  const t = statusFor(records && records[today], profile);
+  if (!(t.morning && t.gym)) cursor = addDays(cursor, -1);
+  for (let i = 0; i < 365; i++) {
+    const st = statusFor(records && records[iso(cursor)], profile);
+    if (st.morning && st.gym) {
+      s++;
+      cursor = addDays(cursor, -1);
+    } else break;
+  }
+  return s;
+};
